@@ -1,0 +1,23 @@
+{
+	"nodes":[
+		{"id":"node_moc_00000001","type":"file","file":"Pacote 1 - Processo de Desenvolvimento e Requisitos/00 - Visao Geral e Indice (MOC).md","x":0,"y":0,"width":420,"height":450,"color":"1"},
+		{"id":"node_proc_0000002","type":"file","file":"Pacote 1 - Processo de Desenvolvimento e Requisitos/01 - Processo de Desenvolvimento Suportado por IA.md","x":-500,"y":-220,"width":420,"height":380,"color":"4"},
+		{"id":"node_vis_00000003","type":"file","file":"Pacote 1 - Processo de Desenvolvimento e Requisitos/02 - Documento de Visao do Produto.md","x":-500,"y":200,"width":420,"height":380,"color":"5"},
+		{"id":"node_rf_000000004","type":"file","file":"Pacote 1 - Processo de Desenvolvimento e Requisitos/03 - Requisitos Funcionais (5 Modulos).md","x":0,"y":-480,"width":420,"height":380,"color":"3"},
+		{"id":"node_rnf_00000005","type":"file","file":"Pacote 1 - Processo de Desenvolvimento e Requisitos/04 - Requisitos Nao-Funcionais (RNFs).md","x":500,"y":-220,"width":420,"height":380,"color":"2"},
+		{"id":"node_fsm_00000006","type":"file","file":"Pacote 1 - Processo de Desenvolvimento e Requisitos/06 - Maquinas de Estados e Regras de Negocio.md","x":500,"y":200,"width":420,"height":380,"color":"6"},
+		{"id":"node_story_000007","type":"file","file":"Pacote 1 - Processo de Desenvolvimento e Requisitos/05 - User Story Mapping e Backlog.md","x":-250,"y":620,"width":420,"height":380,"color":"3"},
+		{"id":"node_ui_000000008","type":"file","file":"Pacote 1 - Processo de Desenvolvimento e Requisitos/07 - Mockups e Mapa de Navegacao Frontend.md","x":250,"y":620,"width":420,"height":380,"color":"5"},
+		{"id":"node_mat_00000009","type":"file","file":"Pacote 1 - Processo de Desenvolvimento e Requisitos/08 - Matriz de Rastreabilidade e Pacotes de Entrega.md","x":980,"y":-10,"width":420,"height":420,"color":"1"}
+	],
+	"edges":[
+		{"id":"edge_moc_to_proc01","fromNode":"node_moc_00000001","fromSide":"left","toNode":"node_proc_0000002","toSide":"right","label":"Processo & IA"},
+		{"id":"edge_moc_to_vis_02","fromNode":"node_moc_00000001","fromSide":"left","toNode":"node_vis_00000003","toSide":"right","label":"Visão & Escopo"},
+		{"id":"edge_moc_to_rf__03","fromNode":"node_moc_00000001","fromSide":"top","toNode":"node_rf_000000004","toSide":"bottom","label":"5 Módulos Autônomos"},
+		{"id":"edge_moc_to_rnf_04","fromNode":"node_moc_00000001","fromSide":"right","toNode":"node_rnf_00000005","toSide":"left","label":"Métricas & RNFs"},
+		{"id":"edge_moc_to_fsm_05","fromNode":"node_moc_00000001","fromSide":"right","toNode":"node_fsm_00000006","toSide":"left","label":"FSM & Outbox"},
+		{"id":"edge_moc_to_sty_06","fromNode":"node_moc_00000001","fromSide":"bottom","toNode":"node_story_000007","toSide":"top","label":"Story Mapping"},
+		{"id":"edge_moc_to_ui__07","fromNode":"node_moc_00000001","fromSide":"bottom","toNode":"node_ui_000000008","toSide":"top","label":"Mockups & Rotas"},
+		{"id":"edge_rnf_to_mat_08","fromNode":"node_rnf_00000005","fromSide":"right","toNode":"node_mat_00000009","toSide":"left","label":"Rastreabilidade PUCRS"}
+	]
+}

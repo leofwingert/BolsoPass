@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BolsoPass - Mockups Interativos de Alta Fidelidade (Pacote 1)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #090d16;
+      --bg-surface: #111827;
+      --bg-surface-elevated: #1f2937;
+      --bg-card: rgba(17, 24, 39, 0.75);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(99, 102, 241, 0.5);
+      
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-glow: rgba(99, 102, 241, 0.25);
+      
+      --accent: #10b981;
+      --accent-glow: rgba(16, 185, 129, 0.25);
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info: #06b6d4;
+
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+      
+      --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, var(--bg-base) 60%);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    header {
+      background: rgba(9, 13, 22, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 0.75rem 1.5rem;
+    }
+
+    .header-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, var(--primary), #ec4899);
+      color: white;
+      font-weight: 800;
+      font-size: 1.1rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 0 15px var(--primary-glow);
+      letter-spacing: -0.5px;
+    }
+
+    .brand-title {
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-sub {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      display: block;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0.35rem;
+      background: var(--bg-surface);
+      padding: 0.25rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.5rem 0.9rem;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-sans);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 2px 10px var(--primary-glow);
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-subtle);
+      font-size: 0.8rem;
+    }
+
+    .role-badge {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent);
+      padding: 0.15rem 0.5rem;
+      border-radius: var(--radius-full);
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    main {
+      flex: 1;
+      max-width: 1400px;
+      width: 100%;
+      margin: 1.5rem auto;
+      padding: 0 1.5rem;
+    }
+
+    .view-container {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .view-container.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Utilitários Visuais */
+    .view-header {
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .view-header h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .view-header p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-card);
+    }
+
+    /* TELA 1: VITRINE */
+    .hero-banner {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(236, 72, 153, 0.15) 100%), #111827;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .flash-crowd-alert {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid var(--danger);
+      color: #fca5a5;
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--radius-full);
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--danger);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--danger);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    .hero-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 0.75rem;
+    }
+
+    .hero-meta {
+      display: flex;
+      gap: 1.5rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .lots-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .lot-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+
+    .lot-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .lot-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .lot-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.6rem;
+      border-radius: var(--radius-full);
+    }
+
+    .lot-badge.active {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent);
+    }
+
+    .lot-badge.soldout {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+    }
+
+    .lot-price {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin: 0.5rem 0;
+    }
+
+    .progress-bar-container {
+      background: rgba(255, 255, 255, 0.08);
+      height: 6px;
+      border-radius: var(--radius-full);
+      margin: 0.75rem 0;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--warning));
+      border-radius: var(--radius-full);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.25rem;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+      width: 100%;
+      text-decoration: none;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      box-shadow: 0 4px 15px var(--primary-glow);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      padding: 0.75rem 1.25rem;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    /* TELA 2: MAPA DE ASSENTOS */
+    .seat-map-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+      .seat-map-wrapper {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .stage-container {
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .stage-bar {
+      background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent);
+      border-top: 2px solid var(--primary);
+      padding: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      font-size: 0.85rem;
+      color: #c7d2fe;
+      margin-bottom: 2.5rem;
+      border-radius: var(--radius-sm);
+    }
+
+    .seats-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      align-items: center;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .seat-row {
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+    }
+
+    .row-label {
+      width: 25px;
+      font-weight: 700;
+      color: var(--text-dim);
+      font-size: 0.8rem;
+    }
+
+    .seat {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid transparent;
+      user-select: none;
+    }
+
+    .seat.available {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #6ee7b7;
+    }
+
+    .seat.available:hover {
+      background: var(--accent);
+      color: black;
+      transform: scale(1.1);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .seat.selected {
+      background: var(--primary);
+      color: white;
+      transform: scale(1.15);
+      box-shadow: 0 0 15px var(--primary-glow);
+      border-color: #a5b4fc;
+    }
+
+    .seat.reserved {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.4);
+      color: #fcd34d;
+      cursor: not-allowed;
+    }
+
+    .seat.sold {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.2);
+      color: var(--text-dim);
+      cursor: not-allowed;
+      opacity: 0.4;
+    }
+
+    .map-legend {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .legend-box {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+    }
+
+    .ws-live-feed {
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-sm);
+      color: #a5f3fc;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+
+    /* TELA 3: CHECKOUT COM CRONOMETRO */
+    .timer-alert-box {
+      background: linear-gradient(90deg, rgba(239, 68, 68, 0.15), rgba(245, 158, 11, 0.15));
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: var(--radius-md);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .timer-display {
+      font-family: var(--font-mono);
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #f87171;
+      text-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+    }
+
+    .checkout-layout {
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 2rem;
+    }
+
+    @media (max-width: 900px) {
+      .checkout-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      color: var(--text-muted);
+    }
+
+    .form-input {
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 1rem;
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .idempotency-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: #818cf8;
+      background: rgba(99, 102, 241, 0.1);
+      padding: 0.25rem 0.6rem;
+      border-radius: var(--radius-sm);
+      margin-top: 0.5rem;
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .summary-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      margin-bottom: 0.6rem;
+      color: var(--text-muted);
+    }
+
+    .summary-total {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-main);
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 1rem;
+      margin-top: 1rem;
+    }
+
+    /* TELA 4: INGRESSO CONFIRMADO */
+    .ticket-confirmation-container {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .digital-ticket-card {
+      background: linear-gradient(145deg, #1e1b4b, #0f172a);
+      border: 2px dashed rgba(99, 102, 241, 0.4);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+
+    .ticket-header-strip {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .qr-box {
+      background: white;
+      padding: 1rem;
+      border-radius: var(--radius-md);
+      display: inline-block;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .qr-box svg {
+      display: block;
+    }
+
+    .ticket-body {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 2rem;
+      align-items: center;
+    }
+
+    .crypto-stamp {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.75rem;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: #34d399;
+      margin-top: 1.5rem;
+      word-break: break-all;
+    }
+
+    /* TELA 5: SCANNER DA PORTARIA */
+    .scanner-view-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 2rem;
+    }
+
+    @media (max-width: 900px) {
+      .scanner-view-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .camera-viewport {
+      background: #000;
+      border-radius: var(--radius-lg);
+      height: 380px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--border-subtle);
+      overflow: hidden;
+    }
+
+    .laser-scan-line {
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #ef4444, #10b981, transparent);
+      box-shadow: 0 0 15px #10b981;
+      animation: scanAnim 2.5s infinite ease-in-out;
+    }
+
+    @keyframes scanAnim {
+      0% { top: 10%; }
+      50% { top: 85%; }
+      100% { top: 10%; }
+    }
+
+    .scanner-reticle {
+      width: 220px;
+      height: 220px;
+      border: 2px dashed rgba(255, 255, 255, 0.4);
+      border-radius: var(--radius-md);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.85rem;
+    }
+
+    .status-badge-authorized {
+      background: rgba(16, 185, 129, 0.2);
+      border: 2px solid var(--accent);
+      color: #34d399;
+      padding: 1.25rem;
+      border-radius: var(--radius-md);
+      text-align: center;
+      font-weight: 800;
+      font-size: 1.3rem;
+      letter-spacing: 0.5px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 0 25px var(--accent-glow);
+    }
+
+    .switch-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* TELA 6: DASHBOARD DE TELEMETRIA */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .kpi-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .kpi-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin: 0.35rem 0;
+      letter-spacing: -0.5px;
+    }
+
+    .kpi-trend {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .chart-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      height: 280px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .chart-bars-simulation {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.85rem;
+      height: 190px;
+      padding-top: 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .bar-col {
+      flex: 1;
+      background: linear-gradient(180deg, var(--primary), rgba(99, 102, 241, 0.2));
+      border-radius: 4px 4px 0 0;
+      position: relative;
+      transition: height 0.5s ease;
+    }
+
+    .bar-col:hover {
+      background: linear-gradient(180deg, #ec4899, rgba(236, 72, 153, 0.2));
+    }
+
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 1.5rem;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      margin-top: 3rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-container">
+      <a href="#" class="brand">
+        <div class="brand-badge">BP</div>
+        <div>
+          <div class="brand-title">BolsoPass Platform</div>
+          <span class="brand-sub">Megaeventos Concorrentes - PUCRS</span>
+        </div>
+      </a>
+
+      <nav class="nav-tabs" id="navTabs">
+        <button class="tab-btn active" data-view="events">1. Vitrine de Eventos</button>
+        <button class="tab-btn" data-view="seats">2. Mapa de Assentos (WS)</button>
+        <button class="tab-btn" data-view="checkout">3. Checkout Transacional</button>
+        <button class="tab-btn" data-view="ticket">4. Ingresso Digital</button>
+        <button class="tab-btn" data-view="scanner">5. Portaria & Scanner</button>
+        <button class="tab-btn" data-view="dashboard">6. Painel de Telemetria</button>
+      </nav>
+
+      <div class="user-pill">
+        <span>Gabriel Silva</span>
+        <span class="role-badge" id="currentRole">ROLE_CLIENT</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- VIEW 1: VITRINE DE EVENTOS -->
+    <section class="view-container active" id="view-events">
+      <div class="hero-banner">
+        <div class="flash-crowd-alert">
+          <div class="pulse-dot"></div>
+          ABERTURA DE VENDAS ATIVA: 18.420 COMPRADORES CONECTADOS SIMULTANEAMENTE
+        </div>
+        <h1 class="hero-title">Festival Internacional Rock PUCRS 2026</h1>
+        <div class="hero-meta">
+          <span>Estádio Central PUCRS, Porto Alegre - RS</span>
+          <span>14 a 16 de Novembro de 2026</span>
+          <span>Abertura dos Portões: 16:00</span>
+        </div>
+        <p style="color: #cbd5e1; max-width: 800px; margin-bottom: 1.5rem; line-height: 1.6;">
+          Experimente a plataforma distribuída de alta concorrência: alocação atômica de assentos em tempo real, proteção contra sobre-venda e garantia de checkout sereno de 10 minutos.
+        </p>
+      </div>
+
+      <div class="view-header">
+        <div>
+          <h2>Lotes Disponíveis para Compra</h2>
+          <p>Valores com taxas de serviço inclusas e emissão criptográfica imediata.</p>
+        </div>
+      </div>
+
+      <div class="lots-grid">
+        <div class="lot-card">
+          <div>
+            <div class="lot-header">
+              <span style="font-weight: 700;">Pista Premium Front-Stage</span>
+              <span class="lot-badge active">Lote 1 (85% Vendido)</span>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Acesso prioritário colado à grade dos palcos principais.</p>
+            <div class="lot-price">R$ 480,00</div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill" style="width: 85%;"></div>
+            </div>
+            <span style="font-size: 0.78rem; color: var(--text-dim);">Últimos 145 ingressos restantes</span>
+          </div>
+          <button class="btn-primary" style="margin-top: 1.25rem;" onclick="switchTab('seats')">
+            Selecionar Assento no Mapa
+          </button>
+        </div>
+
+        <div class="lot-card">
+          <div>
+            <div class="lot-header">
+              <span style="font-weight: 700;">Cadeira Inferior Coberta</span>
+              <span class="lot-badge active">Lote 2 (62% Vendido)</span>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Conforto térmico, assento numerado e visão panorâmica.</p>
+            <div class="lot-price">R$ 350,00</div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill" style="width: 62%;"></div>
+            </div>
+            <span style="font-size: 0.78rem; color: var(--text-dim);">1.280 ingressos restantes</span>
+          </div>
+          <button class="btn-primary" style="margin-top: 1.25rem;" onclick="switchTab('seats')">
+            Selecionar Assento no Mapa
+          </button>
+        </div>
+
+        <div class="lot-card">
+          <div>
+            <div class="lot-header">
+              <span style="font-weight: 700;">Camarote Open Bar & Food</span>
+              <span class="lot-badge soldout">Esgotado</span>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Experiência VIP com estacionamento e lounge climatizado.</p>
+            <div class="lot-price" style="color: var(--text-dim);">R$ 950,00</div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill" style="width: 100%; background: var(--danger);"></div>
+            </div>
+            <span style="font-size: 0.78rem; color: var(--danger);">Lote integralmente liquidado em 32 segundos</span>
+          </div>
+          <button class="btn-secondary" style="margin-top: 1.25rem; opacity: 0.5; cursor: not-allowed;" disabled>
+            Indisponível
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: MAPA DE ASSENTOS COM WEBSOCKET -->
+    <section class="view-container" id="view-seats">
+      <div class="view-header">
+        <div>
+          <h2>Seleção Setorial de Assento (Tempo Real)</h2>
+          <p>Sincronização bidirecional via WebSockets com travas distribuídas Redis Redlock.</p>
+        </div>
+      </div>
+
+      <div class="ws-live-feed">
+        <div class="pulse-dot" style="background: var(--info); box-shadow: 0 0 10px var(--info);"></div>
+        <strong>Canal WebSocket Conectado:</strong> <span id="wsMsg">Aguardando novos eventos de bloqueio...</span>
+      </div>
+
+      <div class="seat-map-wrapper">
+        <div class="stage-container">
+          <div class="stage-bar">PALCO PRINCIPAL / TELÃO 8K</div>
+          
+          <div class="seats-grid" id="seatsGrid">
+            <!-- Gerado via script -->
+          </div>
+
+          <div class="map-legend">
+            <div class="legend-item"><div class="legend-box" style="background: rgba(16, 185, 129, 0.4); border: 1px solid var(--accent);"></div> Disponível</div>
+            <div class="legend-item"><div class="legend-box" style="background: var(--primary);"></div> Selecionado por Você</div>
+            <div class="legend-item"><div class="legend-box" style="background: rgba(245, 158, 11, 0.4); border: 1px solid var(--warning);"></div> Bloqueio Temporário (10m)</div>
+            <div class="legend-item"><div class="legend-box" style="background: rgba(239, 68, 68, 0.3);"></div> Vendido / Ocupado</div>
+          </div>
+        </div>
+
+        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <h3 style="font-size: 1.1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+              Resumo da Reserva
+            </h3>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Ao avançar, o assento é bloqueado atomicamente por <strong>10 minutos</strong> exclusivamente para o seu usuário.
+            </div>
+
+            <div class="summary-line">
+              <span>Setor Escolhido:</span>
+              <strong style="color: var(--text-main);">Cadeira Inferior Coberta</strong>
+            </div>
+            <div class="summary-line">
+              <span>Assento Selecionado:</span>
+              <strong style="color: var(--primary);" id="selectedSeatLabel">Nenhum</strong>
+            </div>
+            <div class="summary-line">
+              <span>Garantia de Concorrência:</span>
+              <span style="color: var(--accent); font-weight: 700;">Zero Overselling</span>
+            </div>
+            <div class="summary-line">
+              <span>Preço Base:</span>
+              <span id="seatPriceDisplay">R$ 0,00</span>
+            </div>
+          </div>
+
+          <div>
+            <button class="btn-primary" id="btnLockSeat" onclick="goToCheckout()" disabled>
+              Bloquear Assento e Ir ao Checkout
+            </button>
+            <div style="text-align: center; margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-dim);">
+              API: <code>POST /api/v1/reservations</code> (Locks Redis)
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: CHECKOUT TRANSACIONAL -->
+    <section class="view-container" id="view-checkout">
+      <div class="timer-alert-box">
+        <div>
+          <div style="font-weight: 700; font-size: 1.1rem; color: #fca5a5;">SUA RESERVA ESTÁ ATIVA E EXPIRA EM BREVE</div>
+          <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">
+            O assento está bloqueado exclusivamente para você. Conclua antes que o cronômetro chegue a zero.
+          </div>
+        </div>
+        <div class="timer-display" id="checkoutTimer">09:59</div>
+      </div>
+
+      <div class="checkout-layout">
+        <div class="card">
+          <h3 style="font-size: 1.2rem; margin-bottom: 1.25rem;">Forma de Pagamento (Gateway Simulado)</h3>
+          
+          <div class="form-group">
+            <label class="form-label">Número do Cartão de Crédito</label>
+            <input type="text" class="form-input" value="4532 •••• •••• 8821" readonly>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Nome Completo do Titular</label>
+            <input type="text" class="form-input" value="GABRIEL S SILVA" readonly>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Validade</label>
+              <input type="text" class="form-input" value="12/29" readonly>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Código CVV</label>
+              <input type="text" class="form-input" value="921" readonly>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Condição de Pagamento</label>
+            <select class="form-input">
+              <option>1x de R$ 385,00 sem juros</option>
+              <option>2x de R$ 192,50 sem juros</option>
+            </select>
+          </div>
+
+          <div class="idempotency-badge">
+            HTTP Header: Idempotency-Key: 7b9e8312-d9f2-4b2a-a9e1-e63d865cfa99
+          </div>
+        </div>
+
+        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <h3 style="font-size: 1.1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+              Extrato do Pedido
+            </h3>
+            <div class="summary-line">
+              <span>Festival Rock PUCRS</span>
+              <span>1x</span>
+            </div>
+            <div class="summary-line">
+              <span>Assento Alocado</span>
+              <strong id="checkoutSeatSummary">B-04</strong>
+            </div>
+            <div class="summary-line">
+              <span>Valor Ingresso</span>
+              <span>R$ 350,00</span>
+            </div>
+            <div class="summary-line">
+              <span>Taxa de Conveniência (10%)</span>
+              <span>R$ 35,00</span>
+            </div>
+
+            <div class="summary-total">
+              <span>Total a Pagar</span>
+              <span style="color: var(--accent);">R$ 385,00</span>
+            </div>
+          </div>
+
+          <div style="margin-top: 2rem;">
+            <button class="btn-primary" onclick="processPayment()" id="btnConfirmPay">
+              Confirmar Pagamento com Transactional Outbox
+            </button>
+            <div style="font-size: 0.75rem; color: var(--text-dim); text-align: center; margin-top: 0.75rem;">
+              Garante publicação atômica no Kafka via PostgreSQL ACID.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: INGRESSO DIGITAL COM QR CODE ASSINADO -->
+    <section class="view-container" id="view-ticket">
+      <div class="ticket-confirmation-container">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <div class="pulse-dot" style="background: var(--accent); margin: 0 auto 0.75rem auto; width: 14px; height: 14px;"></div>
+          <h2 style="font-size: 1.6rem; color: #a7f3d0;">Ingresso Emitido com Sucesso!</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">
+            Seu pagamento foi confirmado e o evento Kafka despachado para a fila de emissão segura.
+          </p>
+        </div>
+
+        <div class="digital-ticket-card">
+          <div class="ticket-header-strip">
+            <div>
+              <span class="brand-badge">BOLSOPASS</span>
+              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.35rem;">Ingresso Oficial Criptografado</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 0.8rem; color: var(--text-dim);">ID DO INGRESSO</div>
+              <div style="font-family: var(--font-mono); font-size: 0.9rem; color: #c7d2fe;">#TK-992014-RS</div>
+            </div>
+          </div>
+
+          <div class="ticket-body">
+            <div>
+              <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem;">Festival Rock PUCRS 2026</h3>
+              <div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Estádio Central PUCRS - Porto Alegre</div>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.85rem;">
+                <div>
+                  <span style="color: var(--text-dim); display: block; font-size: 0.75rem;">SETOR</span>
+                  <strong>Cadeira Coberta</strong>
+                </div>
+                <div>
+                  <span style="color: var(--text-dim); display: block; font-size: 0.75rem;">ASSENTO</span>
+                  <strong style="color: var(--accent); font-size: 1.1rem;" id="ticketSeatDisplay">B-04</strong>
+                </div>
+                <div>
+                  <span style="color: var(--text-dim); display: block; font-size: 0.75rem;">TITULAR</span>
+                  <span>Gabriel S Silva</span>
+                </div>
+                <div>
+                  <span style="color: var(--text-dim); display: block; font-size: 0.75rem;">ENTRADA</span>
+                  <span>Portão B (Rampa Sul)</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="text-align: center;">
+              <div class="qr-box">
+                <!-- SVG QR Code de Alta Fidelidade -->
+                <svg width="130" height="130" viewBox="0 0 25 25" fill="#000">
+                  <path d="M0,0 h7 v7 h-7 z M1,1 v5 h5 v-5 z M2,2 h3 v3 h-3 z M8,0 h1 v1 h-1 z M10,0 h1 v1 h-1 z M13,0 h1 v1 h-1 z M15,0 h1 v1 h-1 z M18,0 h7 v7 h-7 z M19,1 v5 h5 v-5 z M20,2 h3 v3 h-3 z M8,2 h1 v1 h-1 z M12,2 h2 v1 h-2 z M15,2 h2 v1 h-2 z M8,3 h3 v1 h-3 z M13,3 h1 v2 h-1 z M9,4 h2 v1 h-2 z M0,8 h1 v1 h-1 z M2,8 h2 v1 h-2 z M5,8 h3 v1 h-3 z M10,8 h1 v1 h-1 z M12,8 h1 v2 h-1 z M15,8 h2 v1 h-2 z M19,8 h1 v2 h-1 z M22,8 h3 v1 h-3 z M1,9 h1 v2 h-1 z M4,9 h1 v1 h-1 z M6,9 h1 v1 h-1 z M9,9 h1 v2 h-1 z M14,9 h1 v2 h-1 z M17,9 h1 v1 h-1 z M21,9 h2 v1 h-2 z M24,9 h1 v1 h-1 z M3,10 h1 v1 h-1 z M7,10 h1 v1 h-1 z M11,10 h1 v1 h-1 z M16,10 h1 v1 h-1 z M18,10 h1 v1 h-1 z M2,11 h1 v2 h-1 z M5,11 h2 v1 h-2 z M10,11 h2 v1 h-2 z M13,11 h1 v1 h-1 z M15,11 h1 v2 h-1 z M20,11 h1 v1 h-1 z M23,11 h1 v2 h-1 z M0,12 h1 v1 h-1 z M7,12 h1 v2 h-1 z M9,12 h1 v1 h-1 z M17,12 h2 v1 h-2 z M22,12 h1 v1 h-1 z M1,13 h1 v1 h-1 z M4,13 h2 v1 h-2 z M11,13 h3 v1 h-3 z M16,13 h1 v1 h-1 z M20,13 h1 v1 h-1 z M24,13 h1 v1 h-1 z M3,14 h1 v1 h-1 z M8,14 h1 v1 h-1 z M10,14 h1 v1 h-1 z M14,14 h2 v1 h-2 z M18,14 h1 v2 h-1 z M21,14 h2 v1 h-2 z M0,15 h2 v1 h-2 z M4,15 h1 v1 h-1 z M6,15 h1 v1 h-1 z M9,15 h2 v1 h-2 z M12,15 h1 v1 h-1 z M16,15 h2 v1 h-2 z M20,15 h1 v1 h-1 z M23,15 h2 v1 h-2 z M2,16 h2 v1 h-2 z M5,16 h1 v1 h-1 z M8,16 h1 v1 h-1 z M11,16 h1 v1 h-1 z M13,16 h2 v1 h-2 z M17,16 h1 v1 h-1 z M22,16 h1 v1 h-1 z M0,18 h7 v7 h-7 z M1,19 v5 h5 v-5 z M2,20 h3 v3 h-3 z M8,18 h1 v2 h-1 z M10,18 h2 v1 h-2 z M14,18 h1 v1 h-1 z M16,18 h2 v1 h-2 z M19,18 h1 v1 h-1 z M21,18 h1 v1 h-1 z M23,18 h2 v1 h-2 z M11,19 h2 v1 h-2 z M15,19 h1 v2 h-1 z M18,19 h1 v1 h-1 z M20,19 h1 v2 h-1 z M22,19 h1 v1 h-1 z M24,19 h1 v2 h-1 z M8,20 h2 v1 h-2 z M12,20 h1 v1 h-1 z M14,20 h1 v1 h-1 z M17,20 h1 v1 h-1 z M21,20 h1 v1 h-1 z M9,21 h1 v1 h-1 z M11,21 h3 v1 h-3 z M16,21 h1 v1 h-1 z M19,21 h1 v1 h-1 z M23,21 h1 v1 h-1 z M8,22 h1 v1 h-1 z M10,22 h1 v2 h-1 z M15,22 h2 v1 h-2 z M18,22 h2 v1 h-2 z M21,22 h1 v1 h-1 z M24,22 h1 v2 h-1 z M9,23 h1 v1 h-1 z M12,23 h2 v1 h-2 z M17,23 h1 v1 h-1 z M20,23 h2 v1 h-2 z M23,23 h1 v1 h-1 z M8,24 h2 v1 h-2 z M11,24 h1 v1 h-1 z M14,24 h2 v1 h-2 z M18,24 h1 v1 h-1 z M22,24 h2 v1 h-2 z"/>
+                </svg>
+              </div>
+              <div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 0.4rem;">QR Code Criptografado</div>
+            </div>
+          </div>
+
+          <div class="crypto-stamp">
+            ECDSA-P256-SHA256: MEQCIH8a2b5e9f1...87a4c90d1f2e | Carimbo: 2026-10-14T21:40:12-03:00
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+          <button class="btn-primary" onclick="alert('Download do arquivo PDF compilado com sucesso!')">
+            Baixar Ingresso em PDF
+          </button>
+          <button class="btn-secondary" style="flex: 1;" onclick="switchTab('events')">
+            Voltar para Eventos
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 5: PORTARIA E SCANNER DO OPERADOR -->
+    <section class="view-container" id="view-scanner">
+      <div class="view-header">
+        <div>
+          <h2>Terminal de Validação da Portaria (Operador)</h2>
+          <p>Validação criptográfica de QR Code com suporte a operação 100% offline.</p>
+        </div>
+        <div class="switch-container">
+          <span>Modo Conexão:</span>
+          <span class="role-badge" id="offlineStatusBadge" style="background: rgba(16, 185, 129, 0.2); color: var(--accent);">ONLINE</span>
+          <button class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;" onclick="toggleOfflineMode()">
+            Alternar Modo Offline
+          </button>
+        </div>
+      </div>
+
+      <div class="scanner-view-grid">
+        <div class="camera-viewport">
+          <div class="laser-scan-line"></div>
+          <div class="scanner-reticle">
+            <span>Aponte o QR Code</span>
+          </div>
+        </div>
+
+        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div class="status-badge-authorized">
+              ACESSO AUTORIZADO
+            </div>
+
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+              Resultado da última bipagem efetuada pelo leitor ótico:
+            </div>
+
+            <div class="summary-line">
+              <span>Titular do Ingresso:</span>
+              <strong style="color: var(--text-main);">Gabriel S Silva</strong>
+            </div>
+            <div class="summary-line">
+              <span>Setor:</span>
+              <strong>Cadeira Coberta</strong>
+            </div>
+            <div class="summary-line">
+              <span>Cadeira Numerada:</span>
+              <strong style="color: var(--accent);">B-04</strong>
+            </div>
+            <div class="summary-line">
+              <span>Assinatura Digital:</span>
+              <span style="color: #34d399; font-family: var(--font-mono); font-size: 0.75rem;">VALIDADA (ECDSA OK)</span>
+            </div>
+            <div class="summary-line">
+              <span>Prevenção de Dupla Entrada:</span>
+              <span style="color: var(--accent); font-weight: 700;">OK (Primeiro Acesso)</span>
+            </div>
+          </div>
+
+          <div style="background: var(--bg-surface); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 0.78rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">
+              Total de Check-ins nesta Portaria
+            </div>
+            <div style="font-size: 1.6rem; font-weight: 800; color: var(--text-main); margin-top: 0.25rem;">
+              3.412 / 8.000 pessoas
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 6: PAINEL ANALÍTICO DO ORGANIZADOR -->
+    <section class="view-container" id="view-dashboard">
+      <div class="view-header">
+        <div>
+          <h2>Painel Analítico de Telemetria e Vendas (Tempo Real)</h2>
+          <p>Métricas agregadas em tempo real a partir do streaming de tópicos Kafka e Redis.</p>
+        </div>
+        <div class="user-pill">
+          <span>Organizador: Beatriz Operações</span>
+          <span class="role-badge" style="background: rgba(99, 102, 241, 0.2); color: #818cf8;">ROLE_ORGANIZER</span>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-title">Ritmo de Vendas Atual</div>
+          <div class="kpi-value" style="color: var(--accent);">4.820 <span style="font-size: 1rem; font-weight: 500;">ing/min</span></div>
+          <div class="kpi-trend">Pico de Rajada (Flash Crowd)</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-title">Faturamento Total Bruto</div>
+          <div class="kpi-value" style="color: #c7d2fe;">R$ 2.450.800</div>
+          <div class="kpi-trend">100% conciliado via Outbox</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-title">Taxa de Conversão Checkout</div>
+          <div class="kpi-value" style="color: var(--info);">96.4%</div>
+          <div class="kpi-trend">3.6% expirados (TTL 10m)</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-title">Incidentes de Sobre-venda</div>
+          <div class="kpi-value" style="color: var(--accent);">0</div>
+          <div class="kpi-trend">Tolerância Zero Mantida</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+        <div class="chart-box">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong style="font-size: 0.95rem;">Vazão de Requisições por Minuto no Catálogo (HTTP Req/s)</strong>
+            <span style="font-size: 0.75rem; color: var(--accent); font-weight: 700;">Latência P95: 42ms</span>
+          </div>
+
+          <div class="chart-bars-simulation">
+            <div class="bar-col" style="height: 30%;"></div>
+            <div class="bar-col" style="height: 45%;"></div>
+            <div class="bar-col" style="height: 60%;"></div>
+            <div class="bar-col" style="height: 95%;"></div>
+            <div class="bar-col" style="height: 88%;"></div>
+            <div class="bar-col" style="height: 82%;"></div>
+            <div class="bar-col" style="height: 75%;"></div>
+            <div class="bar-col" style="height: 68%;"></div>
+            <div class="bar-col" style="height: 72%;"></div>
+            <div class="bar-col" style="height: 84%;"></div>
+            <div class="bar-col" style="height: 90%;"></div>
+            <div class="bar-col" style="height: 98%;"></div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-dim);">
+            <span>20:00 (Abertura)</span>
+            <span>20:05</span>
+            <span>20:10</span>
+            <span>20:15 (Agora)</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="font-size: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem;">
+            Ocupação Setorial do Estádio
+          </h3>
+          
+          <div style="margin-bottom: 1rem;">
+            <div class="summary-line">
+              <span>Camarotes VIP</span>
+              <strong style="color: var(--danger);">100%</strong>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar-fill" style="width: 100%; background: var(--danger);"></div></div>
+          </div>
+
+          <div style="margin-bottom: 1rem;">
+            <div class="summary-line">
+              <span>Pista Premium</span>
+              <strong style="color: var(--warning);">85%</strong>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar-fill" style="width: 85%;"></div></div>
+          </div>
+
+          <div style="margin-bottom: 1rem;">
+            <div class="summary-line">
+              <span>Cadeira Coberta</span>
+              <strong style="color: var(--accent);">62%</strong>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar-fill" style="width: 62%;"></div></div>
+          </div>
+
+          <div>
+            <div class="summary-line">
+              <span>Arquibancada Geral</span>
+              <strong style="color: var(--accent);">44%</strong>
+            </div>
+            <div class="progress-bar-container"><div class="progress-bar-fill" style="width: 44%;"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    Plataforma BolsoPass • Construção de Software 2026/2 • PUCRS Escola Politécnica • Pacote 1 (Requisitos & Mockups)
+  </footer>
+
+  <script>
+    // Gerenciamento de Abas e Telas
+    const navButtons = document.querySelectorAll('.tab-btn');
+    const viewContainers = document.querySelectorAll('.view-container');
+    const roleBadge = document.getElementById('currentRole');
+
+    function switchTab(viewId) {
+      navButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === viewId);
+      });
+      viewContainers.forEach(container => {
+        container.classList.toggle('active', container.id === `view-${viewId}`);
+      });
+
+      // Simulação de troca de papel conforme a aba
+      if (viewId === 'scanner') {
+        roleBadge.textContent = 'ROLE_OPERATOR';
+        roleBadge.style.color = '#34d399';
+      } else if (viewId === 'dashboard') {
+        roleBadge.textContent = 'ROLE_ORGANIZER';
+        roleBadge.style.color = '#818cf8';
+      } else {
+        roleBadge.textContent = 'ROLE_CLIENT';
+        roleBadge.style.color = '#6ee7b7';
+      }
+    }
+
+    navButtons.forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.view));
+    });
+
+    // Simulação do Mapa de Assentos
+    const seatsGrid = document.getElementById('seatsGrid');
+    const rows = ['A', 'B', 'C', 'D', 'E'];
+    const cols = 8;
+    let selectedSeat = null;
+
+    function renderSeats() {
+      seatsGrid.innerHTML = '';
+      rows.forEach(r => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'seat-row';
+        
+        const label = document.createElement('div');
+        label.className = 'row-label';
+        label.textContent = r;
+        rowDiv.appendChild(label);
+
+        for (let c = 1; c <= cols; c++) {
+          const seatId = `${r}-${String(c).padStart(2, '0')}`;
+          const seatDiv = document.createElement('div');
+          seatDiv.className = 'seat available';
+          seatDiv.textContent = c;
+          seatDiv.dataset.id = seatId;
+
+          // Estado inicial pré-definido para simulação
+          if ((r === 'A' && (c === 3 || c === 4)) || (r === 'C' && (c === 5 || c === 6))) {
+            seatDiv.className = 'seat sold';
+          } else if (r === 'B' && c === 2) {
+            seatDiv.className = 'seat reserved';
+          }
+
+          seatDiv.addEventListener('click', () => {
+            if (seatDiv.classList.contains('sold') || seatDiv.classList.contains('reserved')) return;
+            
+            document.querySelectorAll('.seat.selected').forEach(s => {
+              s.className = 'seat available';
+            });
+
+            seatDiv.className = 'seat selected';
+            selectedSeat = seatId;
+            document.getElementById('selectedSeatLabel').textContent = `${seatId} (Fila ${r})`;
+            document.getElementById('seatPriceDisplay').textContent = 'R$ 350,00';
+            document.getElementById('btnLockSeat').removeAttribute('disabled');
+          });
+
+          rowDiv.appendChild(seatDiv);
+        }
+        seatsGrid.appendChild(rowDiv);
+      });
+    }
+
+    renderSeats();
+
+    // Simulação de Evento WebSocket chegando da rede
+    const wsFeed = document.getElementById('wsMsg');
+    const simEvents = [
+      "Evento recebido: Assento A-07 reservado por cliente #8410 via WebSocket.",
+      "Evento recebido: TTL expirou para o assento B-02. Liberado para compra!",
+      "Evento recebido: Lote 1 de Pista Premium atingiu 88% de ocupação.",
+      "Evento recebido: Assento D-05 reservado por cliente #9122 via WebSocket."
+    ];
+    let evIdx = 0;
+    setInterval(() => {
+      wsFeed.textContent = simEvents[evIdx % simEvents.length];
+      evIdx++;
+    }, 4500);
+
+    // Navegar para Checkout
+    function goToCheckout() {
+      if (!selectedSeat) return;
+      document.getElementById('checkoutSeatSummary').textContent = selectedSeat;
+      document.getElementById('ticketSeatDisplay').textContent = selectedSeat;
+      startCheckoutTimer();
+      switchTab('checkout');
+    }
+
+    // Cronômetro Regressivo de 10 Minutos
+    let timerSeconds = 600;
+    let timerInterval = null;
+
+    function startCheckoutTimer() {
+      clearInterval(timerInterval);
+      timerSeconds = 600;
+      const display = document.getElementById('checkoutTimer');
+
+      timerInterval = setInterval(() => {
+        timerSeconds--;
+        if (timerSeconds <= 0) {
+          clearInterval(timerInterval);
+          display.textContent = "EXPIRADO";
+          alert("O tempo de 10 minutos para sua reserva expirou. O assento foi devolvido ao catálogo.");
+          switchTab('seats');
+          return;
+        }
+
+        const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+        const secs = String(timerSeconds % 60).padStart(2, '0');
+        display.textContent = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    // Processamento com Outbox
+    function processPayment() {
+      const btn = document.getElementById('btnConfirmPay');
+      btn.textContent = "Processando Transação ACID e Outbox...";
+      btn.style.opacity = "0.7";
+      btn.disabled = true;
+
+      setTimeout(() => {
+        btn.textContent = "Confirmar Pagamento com Transactional Outbox";
+        btn.style.opacity = "1";
+        btn.disabled = false;
+        clearInterval(timerInterval);
+        switchTab('ticket');
+      }, 1200);
+    }
+
+    // Toggle Offline na Portaria
+    let isOffline = false;
+    function toggleOfflineMode() {
+      isOffline = !isOffline;
+      const badge = document.getElementById('offlineStatusBadge');
+      if (isOffline) {
+        badge.textContent = "OFFLINE (CHAVE PÚBLICA LOCAL)";
+        badge.style.background = "rgba(245, 158, 11, 0.2)";
+        badge.style.color = "var(--warning)";
+      } else {
+        badge.textContent = "ONLINE (WEBSOCKET CONECTADO)";
+        badge.style.background = "rgba(16, 185, 129, 0.2)";
+        badge.style.color = "var(--accent)";
+      }
+    }
+  </script>
+</body>
+</html>

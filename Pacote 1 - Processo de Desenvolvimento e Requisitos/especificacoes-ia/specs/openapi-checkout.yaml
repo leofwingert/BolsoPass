@@ -1,0 +1,157 @@
+openapi: 3.0.3
+info:
+  title: BolsoPass - API de Reservas e Checkout
+  description: Contrato OpenAPI 3.0 para alocação atômica de assentos, controle de reservas e processamento de checkout com Idempotency-Key.
+  version: 1.0.0
+servers:
+  - url: https://api.bolsopass.pucrs.br/v1
+    description: Gateway de Produção / Homologação
+paths:
+  /reservations:
+    post:
+      summary: Alocar reserva temporária de assento (TTL 10 minutos)
+      description: Bloqueia atomicamente o assento solicitado para o cliente autenticado por 10 minutos. Retorna 409 se já estiver reservado.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - event_id
+                - seat_id
+              properties:
+                event_id:
+                  type: string
+                  format: uuid
+                  example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                seat_id:
+                  type: string
+                  example: "A-12"
+      responses:
+        '201':
+          description: Reserva criada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reservation_id:
+                    type: string
+                    format: uuid
+                  event_id:
+                    type: string
+                    format: uuid
+                  seat_id:
+                    type: string
+                  status:
+                    type: string
+                    example: "RESERVADO_TEMPORARIO"
+                  expires_at:
+                    type: string
+                    format: date-time
+                    example: "2026-10-14T21:30:00Z"
+                  ttl_seconds:
+                    type: integer
+                    example: 600
+        '401':
+          description: Não autenticado ou token JWT inválido
+        '409':
+          description: Assento indisponível ou já reservado por outro cliente (Zero Overselling)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "SEAT_ALREADY_RESERVED"
+                  message:
+                    type: string
+                    example: "O assento A-12 acabou de ser selecionado por outro cliente."
+
+  /checkout:
+    post:
+      summary: Finalizar checkout e processar pagamento
+      description: Transiciona o pedido para AGUARDANDO_PAGAMENTO e confirma o pagamento via Outbox Pattern. Exige cabeçalho Idempotency-Key.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Chave única de idempotência do cliente (IETF Idempotency-Key)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reservation_id
+                - payment_method
+                - payment_token
+              properties:
+                reservation_id:
+                  type: string
+                  format: uuid
+                payment_method:
+                  type: string
+                  enum: [CREDIT_CARD, PIX]
+                installments:
+                  type: integer
+                  minimum: 1
+                  maximum: 12
+                  default: 1
+                payment_token:
+                  type: string
+      responses:
+        '200':
+          description: Pagamento confirmado e ingresso encaminhado para emissão
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order_id:
+                    type: string
+                    format: uuid
+                  reservation_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    example: "PAGO"
+                  amount_cents:
+                    type: integer
+                    example: 38500
+                  paid_at:
+                    type: string
+                    format: date-time
+        '400':
+          description: Requisição inválida ou cabeçalho Idempotency-Key ausente
+        '409':
+          description: Reserva expirada (TTL 10 min excedido) ou conflito de idempotência
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "RESERVATION_EXPIRED"
+                  message:
+                    type: string
+                    example: "O tempo de 10 minutos para este checkout expirou. O assento foi devolvido."
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

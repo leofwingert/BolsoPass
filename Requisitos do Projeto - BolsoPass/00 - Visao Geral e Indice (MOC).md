@@ -11,7 +11,7 @@ tags:
   - arquitetura
   - microsservicos
 created: 2026-10-05
-updated: 2026-10-06
+updated: 2026-10-14
 status: pronto
 ---
 
@@ -55,14 +55,14 @@ Os artefatos de engenharia deste projeto foram distribuídos em notas modulares 
 
 | Documento | Foco e Escopo Técnico | Status |
 | :--- | :--- | :--- |
-| [[01 - Processo de Desenvolvimento Suportado por IA]] | Framework metodológico com engenharia de contexto, pair programming com agentes de IA, ciclo de feedback e rastreabilidade técnica. | Concluído |
-| [[02 - Documento de Visao do Produto]] | Problema de negócio, proposta de valor, público-alvo, personas mapeadas e limites explícitos de fronteira da plataforma. | Concluído |
+| [[01 - Processo de Desenvolvimento Suportado por IA]] | Framework metodológico com engenharia de contexto, especificações OpenAPI/AsyncAPI, pair programming com agentes de IA e guardrails técnicos. | Concluído |
+| [[02 - Documento de Visao do Produto]] | Problema de negócio, proposta de valor, público-alvo, personas mapeadas, KPIs de sucesso e matriz de riscos. | Concluído |
 | [[03 - Requisitos Funcionais (5 Modulos)]] | Especificação funcional aprofundada dos cinco módulos autônomos (IAM, Inventário, Checkout, Despacho e Telemetria). | Concluído |
-| [[04 - Requisitos Nao-Funcionais (RNFs)]] | Critérios não-funcionais mensuráveis: throughput em rajada, latência, tolerância a falhas, cobertura e segurança. | Concluído |
-| [[05 - User Story Mapping e Backlog]] | Backlog horizontal no formato Story Mapping de Jeff Patton, com critérios de aceitação BDD (*Given/When/Then*) e fatias de release. | Concluído |
+| [[04 - Requisitos Nao-Funcionais (RNFs)]] | Critérios não-funcionais mensuráveis: throughput em rajada, latência, tolerância a falhas, cobertura e segurança (ISO 25010). | Concluído |
+| [[05 - User Story Mapping e Backlog]] | Backlog horizontal no formato Story Mapping de Jeff Patton, com 18 User Stories completas e critérios de aceitação BDD (*Given/When/Then*). | Concluído |
 | [[06 - Maquinas de Estados e Regras de Negocio]] | Máquinas de estados formais (FSM do Pedido e Reserva), especificação do Outbox Pattern e semântica do cabeçalho `Idempotency-Key`. | Concluído |
-| [[07 - Mockups e Mapa de Navegacao Frontend]] | Arquitetura de informação do SPA, fluxos de navegação por papel de usuário, wireframes das telas críticas e interações em tempo real. | Concluído |
-| [[08 - Matriz de Rastreabilidade e Pacotes de Entrega]] | Matriz bidirecional relacionando requisitos funcionais, não-funcionais e os quatro pacotes avaliativos do enunciado da PUCRS. | Concluído |
+| [[07 - Mockups e Mapa de Navegacao Frontend]] | Arquitetura de informação do SPA, fluxos de navegação por papel, wireframes estruturais e protótipo interativo de alta resolução ([`mockups-high-res/index.html`](file:///home/leo/%C3%81rea%20de%20trabalho/Vault/BolsoPass/Requisitos%20do%20Projeto%20-%20BolsoPass/mockups-high-res/index.html)). | Concluído |
+| [[08 - Matriz de Rastreabilidade e Pacotes de Entrega]] | Matriz bidirecional relacionando requisitos funcionais, não-funcionais, histórias de usuário e os pacotes avaliativos da PUCRS. | Concluído |
 | [[Mapa Visual dos Requisitos.canvas]] | Tela visual interativa em formato Obsidian Canvas, integrando todas as notas em um grafo bidimensional com fluxos lógicos. | Concluído |
 
 ---
