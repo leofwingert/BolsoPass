@@ -1,0 +1,62 @@
+asyncapi: 2.6.0
+info:
+  title: BolsoPass - Especificação de Eventos Kafka
+  version: 1.0.0
+  description: Esquemas e tópicos de mensageria assíncrona do Apache Kafka na plataforma BolsoPass.
+channels:
+  reservas.expiradas:
+    description: Publicado quando o TTL de 10 minutos de uma reserva expira sem confirmação de pagamento.
+    publish:
+      message:
+        name: ReservaExpiradaEvent
+        payload:
+          type: object
+          required:
+            - event_id
+            - seat_id
+            - reservation_id
+            - expired_at
+          properties:
+            event_id:
+              type: string
+              format: uuid
+            seat_id:
+              type: string
+            reservation_id:
+              type: string
+              format: uuid
+            expired_at:
+              type: string
+              format: date-time
+
+  pedidos.pagos:
+    description: Publicado via Transactional Outbox após confirmação ACID do pagamento no PostgreSQL.
+    publish:
+      message:
+        name: PedidoPagoEvent
+        payload:
+          type: object
+          required:
+            - order_id
+            - client_id
+            - event_id
+            - seat_id
+            - amount_cents
+            - paid_at
+          properties:
+            order_id:
+              type: string
+              format: uuid
+            client_id:
+              type: string
+              format: uuid
+            event_id:
+              type: string
+              format: uuid
+            seat_id:
+              type: string
+            amount_cents:
+              type: integer
+            paid_at:
+              type: string
+              format: date-time
