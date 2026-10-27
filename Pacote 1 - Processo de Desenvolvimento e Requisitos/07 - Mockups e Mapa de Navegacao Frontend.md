@@ -22,7 +22,7 @@ status: pronto
 > O frontend do [[00 - Visao Geral e Indice (MOC)|BolsoPass]] é estruturado como uma [Single Page Application (SPA)](https://en.wikipedia.org/wiki/Single-page_application) moderna e orientada a componentes. A aplicação integra chamadas RESTful autenticadas via JWT para comandos de escrita e estabelece canais de comunicação bidirecionais contínuos via [WebSocket Protocol (RFC 6455)](https://datatracker.ietf.org/doc/html/rfc6455) para atualizações de disponibilidade em tempo real e notificações de confirmação de ingresso.
 >
 > **Protótipo Interativo em Alta Fidelidade (HTML/CSS):**
-> Foi desenvolvido um protótipo navegável completo disponível localmente no arquivo [`mockups-high-res/index.html`](file:///home/leo/%C3%81rea%20de%20trabalho/Vault/BolsoPass/Requisitos%20do%20Projeto%20-%20BolsoPass/mockups-high-res/index.html), simulando a seleção de assentos, cronômetro de 10 minutos, scanner de portaria e métricas do organizador.
+> Foi desenvolvido um protótipo navegável completo disponível localmente no arquivo [`mockups-high-res/index.html`](mockups-high-res/index.html), simulando a seleção de assentos, cronômetro de 10 minutos, scanner de portaria e métricas do organizador.
 
 ---
 

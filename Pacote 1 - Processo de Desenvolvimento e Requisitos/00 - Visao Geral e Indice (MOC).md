@@ -61,7 +61,7 @@ Os artefatos de engenharia deste projeto foram distribuídos em notas modulares 
 | [[04 - Requisitos Nao-Funcionais (RNFs)]] | Critérios não-funcionais mensuráveis: throughput em rajada, latência, tolerância a falhas, cobertura e segurança (ISO 25010). | Concluído |
 | [[05 - User Story Mapping e Backlog]] | Backlog horizontal no formato Story Mapping de Jeff Patton, com 18 User Stories completas e critérios de aceitação BDD (*Given/When/Then*). | Concluído |
 | [[06 - Maquinas de Estados e Regras de Negocio]] | Máquinas de estados formais (FSM do Pedido e Reserva), especificação do Outbox Pattern e semântica do cabeçalho `Idempotency-Key`. | Concluído |
-| [[07 - Mockups e Mapa de Navegacao Frontend]] | Arquitetura de informação do SPA, fluxos de navegação por papel, wireframes estruturais e protótipo interativo de alta resolução ([`mockups-high-res/index.html`](file:///home/leo/%C3%81rea%20de%20trabalho/Vault/BolsoPass/Pacote%201%20-%20Processo%20de%20Desenvolvimento%20e%20Requisitos/mockups-high-res/index.html)). | Concluído |
+| [[07 - Mockups e Mapa de Navegacao Frontend]] | Arquitetura de informação do SPA, fluxos de navegação por papel, wireframes estruturais e protótipo interativo de alta resolução ([`mockups-high-res/index.html`](mockups-high-res/index.html)). | Concluído |
 | [[08 - Matriz de Rastreabilidade e Pacotes de Entrega]] | Matriz bidirecional relacionando requisitos funcionais, não-funcionais, histórias de usuário e os pacotes avaliativos da PUCRS. | Concluído |
 | [[Mapa Visual dos Requisitos.canvas]] | Tela visual interativa em formato Obsidian Canvas, integrando todas as notas em um grafo bidimensional com fluxos lógicos. | Concluído |
 
@@ -79,7 +79,7 @@ Os artefatos de engenharia deste projeto foram distribuídos em notas modulares 
    - Documento descritivo: [[04 - Requisitos Nao-Funcionais (RNFs)]] (RNF-01 a RNF-08 com métricas quantitativas e verificação)
 5. **Mockups (low, medium ou high res, a escolha) e mapa de navegação do front-end:**
    - Documento descritivo: [[07 - Mockups e Mapa de Navegacao Frontend]]
-   - Protótipo navegável em alta resolução: pasta [`mockups-high-res/index.html`](file:///home/leo/%C3%81rea%20de%20trabalho/Vault/BolsoPass/Pacote%201%20-%20Processo%20de%20Desenvolvimento%20e%20Requisitos/mockups-high-res/index.html)
+   - Protótipo navegável em alta resolução: pasta [`mockups-high-res/index.html`](mockups-high-res/index.html)
 
 
 ---
