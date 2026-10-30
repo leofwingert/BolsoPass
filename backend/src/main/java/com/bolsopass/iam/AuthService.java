@@ -105,8 +105,11 @@ public class AuthService {
     return issue(user);
   }
 
-  /** Rotação do refresh token. Reuso de um token já rotacionado derruba todas as sessões. */
-  @Transactional
+  /**
+   * Rotação do refresh token. Reuso de um token já rotacionado derruba todas as sessões.
+   * noRollbackFor: a revogação precisa ser gravada mesmo respondendo 401 (senão o erro desfaz).
+   */
+  @Transactional(noRollbackFor = ApiException.class)
   public SessionDto refresh(String refreshToken) {
     RefreshToken stored =
         refreshTokens
