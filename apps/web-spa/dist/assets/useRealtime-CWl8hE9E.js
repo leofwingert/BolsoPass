@@ -1,0 +1,1 @@
+import{r as s,_ as u}from"./index-BxOpnQFX.js";function f(t,e){const r=s.useRef(e);r.current=e,s.useEffect(()=>{if(t)return u.subscribe(t,n=>r.current(n))},[t])}function c(){const[t,e]=s.useState(u.getStatus());return s.useEffect(()=>u.onStatus(e),[]),t}export{f as a,c as u};
