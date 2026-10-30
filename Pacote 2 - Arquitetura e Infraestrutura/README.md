@@ -23,7 +23,7 @@
 | Camada | Tecnologia |
 |---|---|
 | **Frontend SPA** | React 18 + Vite + TypeScript + TanStack Query |
-| **Backend** | Java 21 + Spring Boot 3.3 (Web, Data JPA, Kafka, Security) |
+| **Backend** | Java 25 (LTS) + Spring Boot 3.3 (Web, Data JPA, Kafka, Security) |
 | **Identidade** | Keycloak 25 (OIDC) |
 | **Banco relacional** | PostgreSQL 16 |
 | **Cache / locks** | Redis 7 |

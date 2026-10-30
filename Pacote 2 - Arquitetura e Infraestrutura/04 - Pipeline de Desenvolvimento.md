@@ -72,7 +72,7 @@ flowchart LR
 
 ### 2.7 Build & push de imagens Docker
 
-- Multi-stage Dockerfile para cada microsserviço (`eclipse-temurin:21-jre-alpine` como base final).
+- Multi-stage Dockerfile para cada microsserviço (`eclipse-temurin:25-jre-alpine` como base final).
 - Tag: `ghcr.io/<org>/<service>:${{ github.sha }}` + `:develop` em merges em develop.
 - Assinatura das imagens com **Cosign** (opcional).
 
@@ -118,7 +118,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
-        with: { java-version: '21', distribution: 'temurin' }
+        with: { java-version: '25', distribution: 'temurin' }
       - run: ./mvnw -B spotless:check checkstyle:check
   build-test:
     needs: lint
@@ -126,7 +126,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
-        with: { java-version: '21', distribution: 'temurin' }
+        with: { java-version: '25', distribution: 'temurin' }
       - run: ./mvnw -B -ntp verify
       - uses: codecov/codecov-action@v4
 ```

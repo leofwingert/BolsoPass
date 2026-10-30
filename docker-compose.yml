@@ -1,0 +1,22 @@
+# Infraestrutura local do BolsoPass.
+# Hoje: só o PostgreSQL. Redis, Kafka, Keycloak e os contêineres da aplicação entram nas próximas partes.
+#   docker compose up -d
+#   cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=postgres
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: bolsopass
+      POSTGRES_USER: bolsopass
+      POSTGRES_PASSWORD: bolsopass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bolsopass"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:

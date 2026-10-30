@@ -1,0 +1,12 @@
+{
+  "name": "bolsopass",
+  "private": true,
+  "description": "Monorepo BolsoPass (pnpm workspace). Backend Maven multi-module entra ao lado de apps/.",
+  "scripts": {
+    "dev": "pnpm --filter web-spa dev",
+    "build": "pnpm --filter web-spa build",
+    "lint": "pnpm --filter web-spa lint",
+    "format:check": "pnpm --filter web-spa format:check",
+    "test:unit": "pnpm --filter web-spa test:unit"
+  }
+}

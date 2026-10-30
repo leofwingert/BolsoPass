@@ -1,0 +1,9 @@
+{
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "java.jdt.ls.java.home": "${userHome}\\.jdk\\jdk-25",
+    "terminal.integrated.env.windows": {
+        "JAVA_HOME": "${userHome}\\.jdk\\jdk-25",
+        "Path": "${userHome}\\.jdk\\jdk-25\\bin;${env:Path}"
+    }
+}
