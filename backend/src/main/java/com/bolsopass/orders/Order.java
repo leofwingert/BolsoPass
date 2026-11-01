@@ -22,7 +22,9 @@ import java.util.List;
 public class Order {
   public enum PaymentMethod {
     CREDIT_CARD,
-    PIX
+    PIX,
+    /** Só no balcão da bilheteria. */
+    CASH
   }
 
   @Embeddable

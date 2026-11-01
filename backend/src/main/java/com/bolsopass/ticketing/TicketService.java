@@ -61,9 +61,29 @@ public class TicketService {
     }
   }
 
+  /**
+   * Carteira: ingressos que a pessoa comprou + ingressos em que ela é a titular pelo CPF
+   * (venda no balcão, ou um amigo que comprou para ela). O CPF vinculado é o que vale na entrada.
+   */
   @Transactional(readOnly = true)
   public List<TicketView> mine(String userId) {
-    return tickets.findByUserIdOrderByIssuedAtDesc(userId).stream().map(this::view).toList();
+    Map<String, Ticket> all = new java.util.LinkedHashMap<>();
+    tickets.findByUserIdOrderByIssuedAtDesc(userId).forEach(t -> all.put(t.getId(), t));
+    String cpf = holderCpf(userId);
+    if (cpf != null) tickets.findByHolderCpfOrderByIssuedAtDesc(cpf).forEach(t -> all.putIfAbsent(t.getId(), t));
+    return all.values().stream()
+        .sorted(java.util.Comparator.comparing(Ticket::getIssuedAt).reversed())
+        .map(this::view)
+        .toList();
+  }
+
+  /** CPF da conta, só dígitos (como fica gravado no ingresso). */
+  private String holderCpf(String userId) {
+    return users.findById(userId)
+        .map(u -> u.getCpf())
+        .filter(c -> c != null && !c.isBlank())
+        .map(c -> c.replaceAll("\\D", ""))
+        .orElse(null);
   }
 
   @Transactional(readOnly = true)
@@ -82,8 +102,10 @@ public class TicketService {
 
   private Ticket owned(String userId, String ticketId) {
     Ticket t = tickets.findById(ticketId).orElseThrow(() -> ApiException.notFound("Ingresso"));
-    // Doc 07: só o titular do pedido vê o ingresso.
-    if (!t.getUserId().equals(userId)) throw ApiException.forbidden("Ingresso não pertence a você");
+    // Doc 07: só quem comprou ou a pessoa titular (CPF vinculado ao ingresso) vê o ingresso.
+    boolean buyer = t.getUserId().equals(userId);
+    boolean holder = t.getHolderCpf() != null && t.getHolderCpf().equals(holderCpf(userId));
+    if (!buyer && !holder) throw ApiException.forbidden("Ingresso não pertence a você");
     return t;
   }
 

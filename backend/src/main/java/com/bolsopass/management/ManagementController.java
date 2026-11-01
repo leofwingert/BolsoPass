@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/v1/operator")
-@PreAuthorize("hasAnyRole('OPERATOR', 'ADMIN')")
+@PreAuthorize("hasRole('OPERATOR')")
 public class ManagementController {
   /** Eventos que a portaria pode operar. */
   private static final Set<Event.Status> OPERABLE =
@@ -51,6 +51,8 @@ public class ManagementController {
     this.signer = signer;
   }
 
+  // Lista de eventos também serve ao terminal de venda (escolher o evento a vender).
+  @PreAuthorize("hasAnyRole('OPERATOR', 'SELLER')")
   @GetMapping("/events")
   @Transactional(readOnly = true)
   List<Map<String, Object>> assignedEvents() {

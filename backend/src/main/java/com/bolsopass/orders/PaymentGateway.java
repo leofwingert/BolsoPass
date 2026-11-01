@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 /**
  * Simulador do gateway financeiro (RF-11).
  * Cartão terminado em 0000 = recusa por saldo insuficiente; PIX e demais cartões aprovam.
+ * Dinheiro (só no balcão) é recebido pelo operador, então sempre aprova.
  */
 @Component
 public class PaymentGateway {

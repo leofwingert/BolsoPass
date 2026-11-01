@@ -31,6 +31,7 @@ class BoxOfficeIntegrationTest {
   @Autowired ObjectMapper json;
   @Autowired TicketRepository tickets;
   @Autowired AuditLogRepository logs;
+  @Autowired com.bolsopass.ticketing.TicketService ticketService;
 
   private static final String BASE = "/api/v1/operator/box-office";
 
@@ -126,6 +127,60 @@ class BoxOfficeIntegrationTest {
 
     // O assento vendido não está mais vago.
     assertThat(freeSeats(op, "evt-synthwave", 500)).doesNotContain(seat);
+  }
+
+  private String sellerToken() throws Exception {
+    return body(mvc.perform(post("/api/v1/auth/operator/login").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"badge\":\"VD-20001\",\"pin\":\"654321\"}")))
+        .path("accessToken").asText();
+  }
+
+  @Test
+  void terminalDeVendaVendeEmDinheiroMasNaoLeQr() throws Exception {
+    String seller = sellerToken();
+    assertThat(seller).isNotBlank();
+    // Só vende: base de ingressos e envio de leituras são da portaria.
+    call("GET", "/api/v1/operator/events/evt-neon/cache", null, seller, null).andExpect(status().isForbidden());
+    call("GET", "/api/v1/operator/events", null, seller, null).andExpect(status().isOk());
+
+    JsonNode buyer = body(call("POST", BASE + "/customers",
+        Map.of("cpf", "529.071.700-58", "name", "Lia Prado Moura", "phone", "(11) 97777-1111"), seller, null));
+    JsonNode friend = body(call("POST", BASE + "/customers",
+        Map.of("cpf", "817.385.770-90", "name", "Davi Nunes Rocha", "phone", "(11) 96666-2222"), seller, null));
+    List<String> seats = freeSeats(seller, "evt-neon", 2);
+    String reservationId = body(call("POST", BASE + "/events/evt-neon/reservations",
+            Map.of("customerId", buyer.path("id").asText(), "seatIds", seats), seller, null))
+        .path("reservation").path("id").asText();
+
+    Map<String, Object> payment = new HashMap<>();
+    payment.put("reservationId", reservationId);
+    payment.put("method", "CASH");
+    payment.put("installments", 1);
+    payment.put("holders", List.of(
+        Map.of("seatId", seats.get(0), "name", "Lia Prado Moura", "cpf", "529.071.700-58"),
+        Map.of("seatId", seats.get(1), "name", "Davi Nunes Rocha", "cpf", "817.385.770-90")));
+    JsonNode order = body(call("POST", BASE + "/checkout", Map.of("customerId", buyer.path("id").asText(), "payment", payment),
+        seller, UUID.randomUUID().toString()));
+    assertThat(order.path("status").asText()).isEqualTo("PAGO");
+    assertThat(order.path("payment").path("method").asText()).isEqualTo("CASH");
+
+    // O CPF vinculado ao ingresso leva o ingresso para a conta do titular, mesmo sem ter pago.
+    var friendWallet = ticketService.mine(friend.path("id").asText());
+    assertThat(friendWallet).anyMatch(t -> t.holderName().equals("Davi Nunes Rocha"));
+    assertThat(friendWallet).noneMatch(t -> t.holderName().equals("Lia Prado Moura"));
+  }
+
+  @Test
+  void adminNaoUsaABilheteriaEClienteNaoPagaEmDinheiroOnline() throws Exception {
+    String admin = body(mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+            .content("{\"email\":\"admin@bolsopass.io\",\"password\":\"bolsopass\"}")))
+        .path("accessToken").asText();
+    call("GET", BASE + "/customers?cpf=529.982.247-25", null, admin, null).andExpect(status().isForbidden());
+    call("GET", "/api/v1/operator/events", null, admin, null).andExpect(status().isForbidden());
+
+    call("POST", "/api/v1/checkout", Map.of("reservationId", "x", "method", "CASH", "installments", 1, "holders", List.of()),
+        token(false), UUID.randomUUID().toString())
+        .andExpect(status().isBadRequest());
   }
 
   @Test

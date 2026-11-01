@@ -37,7 +37,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Dados de demonstração baseados nos mockups (Mocks-User). Só roda com o banco vazio.
- * Contas: sarah@bolsopass.io / admin@bolsopass.io (senha "bolsopass"), operador OP-88219 (PIN 123456).
+ * Contas: sarah@bolsopass.io / admin@bolsopass.io (senha "bolsopass"), operador OP-88219 (PIN 123456),
+ * terminal de venda VD-20001 (PIN 654321).
  */
 @Component
 public class DataSeeder implements ApplicationRunner {
@@ -90,6 +91,11 @@ public class DataSeeder implements ApplicationRunner {
         new User("u-operator", "Carlos Silva", "carlos.silva@bolsopass.io", encoder.encode("123456"),
                 Set.of(Role.ROLE_OPERATOR))
             .withBadge("OP-88219"));
+    // Terminal de venda da bilheteria (maquininha): só vende, não lê QR.
+    users.save(
+        new User("u-seller", "Juliana Rocha", "juliana.rocha@bolsopass.io", encoder.encode("654321"),
+                Set.of(Role.ROLE_SELLER))
+            .withBadge("VD-20001"));
 
     Event synth =
         event("evt-synthwave", "Festival Synthwave 2026", Category.FESTIVAIS, 12, 18, Event.Status.EM_VENDAS)

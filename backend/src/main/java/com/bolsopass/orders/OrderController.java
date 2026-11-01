@@ -48,6 +48,10 @@ public class OrderController {
   @PostMapping("/checkout")
   OrderView pay(
       @RequestHeader(value = "Idempotency-Key", required = false) String key, @RequestBody PayRequest req) {
+    // Dinheiro só existe no balcão: na compra online não há quem receba.
+    if (req.method() == Order.PaymentMethod.CASH) {
+      throw ApiException.badRequest("Pagamento em dinheiro só na bilheteria");
+    }
     return checkout.pay(CurrentUser.id(), req, key);
   }
 

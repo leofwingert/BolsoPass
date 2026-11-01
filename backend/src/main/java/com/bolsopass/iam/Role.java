@@ -5,5 +5,7 @@ public enum Role {
   ROLE_CLIENT,
   ROLE_ORGANIZER,
   ROLE_OPERATOR,
-  ROLE_ADMIN
+  ROLE_ADMIN,
+  /** Terminal de venda da bilheteria: só vende (não lê QR). */
+  ROLE_SELLER
 }

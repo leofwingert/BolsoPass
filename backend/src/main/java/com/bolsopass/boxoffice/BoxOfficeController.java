@@ -18,10 +18,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Venda no balcão da bilheteria (ROLE_OPERATOR / ROLE_ADMIN). */
+/** Venda no balcão da bilheteria (operador de portaria ou terminal de venda; o admin não vende). */
 @RestController
 @RequestMapping("/api/v1/operator/box-office")
-@PreAuthorize("hasAnyRole('OPERATOR', 'ADMIN')")
+@PreAuthorize("hasAnyRole('OPERATOR', 'SELLER')")
 public class BoxOfficeController {
   public record ReserveRequest(String customerId, List<String> seatIds) {}
 

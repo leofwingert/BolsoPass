@@ -94,7 +94,7 @@ public class AuthService {
         users
             .findByBadge(badge.trim().toUpperCase())
             .or(() -> users.findByEmail(badge.trim().toLowerCase()))
-            .filter(u -> u.getRoles().contains(Role.ROLE_OPERATOR))
+            .filter(u -> u.getRoles().contains(Role.ROLE_OPERATOR) || u.getRoles().contains(Role.ROLE_SELLER))
             .filter(u -> passwordEncoder.matches(pin, u.getPasswordHash()))
             .orElse(null);
     if (user == null) {
