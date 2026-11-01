@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { api } from '@/api';
 import type { AssignedEvent, Gate, OfflineTicketCache, ScanRecord } from '@/api/types';
 import { useAuth } from '@/auth/AuthProvider';
+import { isSellerOnly } from '@/auth/roles';
 import { validateScan, type ScanOutcome } from '@/domain/ticketQr';
 import { importPublicKey, verify } from '@/lib/ecdsa';
 
@@ -62,6 +63,7 @@ export function maskCpf(cpf?: string) {
 
 export function OperatorProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const seller = isSellerOnly(user);
   const prefix = `bp.operator.${user?.id ?? 'anon'}`;
   const [station, setStation] = useState<Station | undefined>(() => load(`${prefix}.station`));
   const [scans, setScans] = useState<ScanRecord[]>(() => load(`${prefix}.scans`) ?? []);
@@ -114,8 +116,9 @@ export function OperatorProvider({ children }: { children: ReactNode }) {
   }, [station]);
 
   // Sincroniza a cada 10 s (contagem regressiva visível na tela de contingência).
+  // O terminal de venda não lê QR: não tem leituras nem base offline para sincronizar.
   useEffect(() => {
-    if (!station) return;
+    if (!station || seller) return;
     const t = setInterval(() => {
       setNextRetryInS((s) => {
         if (s <= 1) {
@@ -126,7 +129,7 @@ export function OperatorProvider({ children }: { children: ReactNode }) {
       });
     }, 1000);
     return () => clearInterval(t);
-  }, [station, syncNow]);
+  }, [station, seller, syncNow]);
 
   const verifier = useCallback(async () => {
     const jwk = JSON.stringify(station?.cache.publicKeyJwk);

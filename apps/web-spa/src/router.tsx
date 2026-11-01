@@ -1,7 +1,8 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
 import { RequireArea } from '@/auth/RequireArea';
-import type { Area } from '@/auth/roles';
+import { useAuth } from '@/auth/AuthProvider';
+import { isSellerOnly, type Area } from '@/auth/roles';
 import { Spinner } from '@/components/ui';
 import { ClientLayout } from '@/layouts/ClientLayout';
 
@@ -28,6 +29,18 @@ const NotFoundPage = lazy(() => import('@/features/NotFoundPage'));
 
 const page = (node: ReactNode) => <Suspense fallback={<Spinner />}>{node}</Suspense>;
 const guarded = (area: Area, node: ReactNode) => page(<RequireArea area={area}>{node}</RequireArea>);
+
+/** Telas só da portaria: o terminal de venda é levado para a venda. */
+function PortariaOnly({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  return isSellerOnly(user) ? <Navigate to="/operator/sell" replace /> : <>{children}</>;
+}
+const portaria = (node: ReactNode) => page(<PortariaOnly>{node}</PortariaOnly>);
+
+function BoxOfficeHome() {
+  const { user } = useAuth();
+  return <Navigate to={isSellerOnly(user) ? 'sell' : 'scan'} replace />;
+}
 
 /** Rotas do doc 07 ("Tabela de Rotas, Perfis e Políticas de Acesso"). */
 /** Árvore de rotas (exportada para os testes montarem a aplicação com MemoryRouter). */
@@ -60,16 +73,17 @@ export const routes: RouteObject[] = [
       { path: 'events/:id', element: page(<OrganizerEventPage />) },
     ],
   },
-  // Bilheteria / portaria (ROLE_OPERATOR): app de celular com navegação inferior.
+  // Bilheteria: app de celular. Portaria (ROLE_OPERATOR) lê QR e vende;
+  // terminal de venda (ROLE_SELLER) só vende. O admin não entra aqui.
   {
     path: '/operator',
-    element: guarded('operator', <OperatorLayout />),
+    element: guarded('boxOffice', <OperatorLayout />),
     children: [
-      { index: true, element: <Navigate to="scan" replace /> },
+      { index: true, element: <BoxOfficeHome /> },
       { path: 'setup', element: page(<OperatorSetupPage />) },
-      { path: 'scan', element: page(<OperatorScanPage />) },
-      { path: 'history', element: page(<OperatorHistoryPage />) },
-      { path: 'offline', element: page(<OperatorOfflinePage />) },
+      { path: 'scan', element: portaria(<OperatorScanPage />) },
+      { path: 'history', element: portaria(<OperatorHistoryPage />) },
+      { path: 'offline', element: portaria(<OperatorOfflinePage />) },
       { path: 'sell', element: page(<OperatorSalePage />) },
     ],
   },

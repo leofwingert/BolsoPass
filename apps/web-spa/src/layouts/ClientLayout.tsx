@@ -90,11 +90,6 @@ export function ClientLayout() {
                 Painel administrativo
               </NavLink>
             )}
-            {canAccess(user, 'operator') && (
-              <NavLink to="/operator/setup" className={navClass}>
-                Operação Portaria
-              </NavLink>
-            )}
           </nav>
           <div className="ml-auto flex items-center gap-2 lg:ml-0">
             {canAccess(user, 'client') && <ReservationPill />}

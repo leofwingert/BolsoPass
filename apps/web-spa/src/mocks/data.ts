@@ -37,6 +37,15 @@ export const users: (User & { password?: string; pin?: string })[] = [
     badge: 'OP-88219',
     pin: DEMO_OPERATOR_PIN,
   },
+  {
+    // Terminal de venda da bilheteria (maquininha): só vende.
+    id: 'u-seller',
+    name: 'Juliana Rocha',
+    email: 'juliana.rocha@bolsopass.io',
+    roles: ['ROLE_SELLER'],
+    badge: 'VD-20001',
+    pin: '654321',
+  },
 ];
 
 /** Layout físico padrão: quantidade de assentos por setor e por fileira. */

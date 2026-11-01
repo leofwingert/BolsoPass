@@ -5,7 +5,7 @@ import { api } from '@/api';
 import { errorMessage } from '@/api/errors';
 import type { OrganizerSectorSeats } from '@/api/types';
 import { Badge, ErrorState, Spinner } from '@/components/ui';
-import { cx, formatDateTime, formatMoney } from '@/lib/format';
+import { cx, formatDateTime, formatMoney, paymentLabel } from '@/lib/format';
 
 type SeatItem = OrganizerSectorSeats['seats'][number];
 
@@ -87,7 +87,7 @@ function SalePanel({ eventId, seat }: { eventId: string; seat: SeatItem }) {
         <div className="mt-1 grid grid-cols-2 gap-x-3">
           <Row icon={<Ticket className="size-4" />} label="Código" value={<span className="font-mono">{s.orderCode}</span>} />
           <Row icon={<CreditCard className="size-4" />} label="Pagamento"
-            value={s.paymentMethod === 'PIX' ? 'PIX' : s.paymentMethod === 'CREDIT_CARD' ? `Cartão${s.cardLast4 ? ` final ${s.cardLast4}` : ''}${s.installments > 1 ? ` em ${s.installments}x` : ''}` : '—'} />
+            value={`${paymentLabel(s.paymentMethod, s.cardLast4)}${s.installments > 1 ? ` em ${s.installments}x` : ''}`} />
           <Row icon={<CreditCard className="size-4" />} label="Pago em" value={formatDateTime(s.paidAt)} />
           <Row icon={<CreditCard className="size-4" />} label="Valor deste assento" value={formatMoney(s.priceCents)} />
         </div>

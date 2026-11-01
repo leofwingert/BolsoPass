@@ -65,7 +65,8 @@ e abre a área certa. Embaixo do formulário há botões de **acesso rápido** c
 | :--- | :--- | :--- | :--- |
 | **Cliente** | `sarah@bolsopass.io` | `bolsopass` | Catálogo de eventos |
 | **Admin** (organizador + administrador) | `admin@bolsopass.io` | `bolsopass` | Painel do produtor |
-| **Bilheteria** (operador de portaria) | `OP-88219` | `123456` | Leitor de QR |
+| **Bilheteria** (operador de portaria) | `OP-88219` | `123456` | Leitor de QR (também vende) |
+| **Terminal de venda** (bilheteria) | `VD-20001` | `654321` | Venda no balcão (só vende) |
 
 > Cartão terminado em `0000` simula pagamento recusado. A câmera da bilheteria só funciona em
 > HTTPS ou em `localhost` (exigência do navegador).
@@ -116,7 +117,18 @@ e abre a área certa. Embaixo do formulário há botões de **acesso rápido** c
 | Continuar validando **sem internet**; as entradas ficam na fila e são enviadas quando a rede volta | ✅ |
 | Ver o histórico do turno: lidos, aprovados, recusados, busca e filtros | ✅ |
 | Abrir o app do zero sem internet (app instalável/PWA) | ⏳ |
-| **Vender no balcão**: buscar o cliente pelo CPF (nome e telefone), escolher lugares vagos e cobrar no cartão ou PIX; cadastro rápido para quem não tem conta | ✅ |
+| **Vender no balcão** (maquininha): buscar o cliente pelo CPF (nome e telefone), escolher lugares vagos e cobrar no **crédito (com parcelas), PIX ou dinheiro (com troco)**, pagamento simulado; cadastro rápido para quem não tem conta; comprovante | ✅ |
+
+#### Terminal de venda (bilheteria) — só vende
+
+| Caso de uso | Status |
+| :--- | :---: |
+| Escolher o evento que vai vender (sem portão e sem leitor de QR) | ✅ |
+| Vender no balcão: CPF → lugares vagos → crédito, PIX ou dinheiro → comprovante | ✅ |
+| O CPF de cada titular fica vinculado ao ingresso, que aparece na conta BolsoPass desse CPF | ✅ |
+| Leitor de QR, histórico de leituras e modo offline | 🚫 só a portaria |
+
+> O **Admin não acessa a bilheteria** (nem vende nem lê QR): ela é só da equipe de bilheteria.
 
 ### 3.3 Garantias técnicas já implementadas
 

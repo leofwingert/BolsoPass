@@ -17,8 +17,6 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/api';
 import { errorMessage } from '@/api/errors';
-import { useAuth } from '@/auth/AuthProvider';
-import { canAccess } from '@/auth/roles';
 import { Badge, Button, Card, ErrorState, EventCover, Progress, Spinner } from '@/components/ui';
 import { cx, daysUntil, formatDate, formatMoney, formatNumber, pct } from '@/lib/format';
 import { STATUS_LABEL, StatusBadge, downloadCsv } from './shared';
@@ -39,7 +37,6 @@ function Kpi({ label, icon, tone = 'neutral', children }: { label: string; icon:
 }
 
 export default function OrganizerDashboardPage() {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<Filter>('todos');
   const dash = useQuery({ queryKey: ['organizer', 'dashboard'], queryFn: () => api.organizer.getDashboard(), refetchInterval: 15_000 });
@@ -281,9 +278,6 @@ export default function OrganizerDashboardPage() {
               <p className="font-bold">{onSale.length} evento(s) com portaria a preparar</p>
               <p className="mt-0.5 text-muted">Acompanhe as entradas por portão na página de cada evento.</p>
             </div>
-            {canAccess(user, 'operator') && (
-              <Link to="/operator/setup"><Button variant="soft" size="sm" className="mt-3 w-full">Abrir bilheteria</Button></Link>
-            )}
           </Card>
 
           <p className="flex gap-2 px-1 text-xs text-muted">

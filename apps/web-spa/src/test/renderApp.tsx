@@ -40,7 +40,7 @@ export function renderApp(path = '/') {
   return { user, router };
 }
 
-export type Profile = 'Cliente' | 'Admin' | 'Bilheteria';
+export type Profile = 'Cliente' | 'Admin' | 'Bilheteria' | 'Venda';
 
 /** Abre a URL; como ela é protegida, cai no login e entra pelo botão de acesso rápido do perfil. */
 export async function openAs(profile: Profile, path: string) {

@@ -102,7 +102,7 @@ do Kafka.
 | :--- | :---: | :--- |
 | Testes unitários das máquinas de estado | ✅ | Backend: 19 testes da máquina de estados do pedido. Frontend: 46 testes de domínio |
 | Cobertura ≥ 70% | ✅ | **Backend: 91% das linhas** (JaCoCo; `./mvnw verify` falha abaixo de 70%). **Frontend: 90,9% linhas, 80,6% ramos, 78,4% funções** do sistema inteiro (`pnpm coverage` falha abaixo de 70%). Domínio do frontend: 100%. Ramos do backend ainda em 63,5% |
-| Testes de integração com **Testcontainers** (PostgreSQL, Kafka, Redis) | ❌ | Os 11 testes de integração rodam em H2 em memória |
+| Testes de integração com **Testcontainers** (PostgreSQL, Kafka, Redis) | ❌ | Os testes de integração rodam em H2 em memória |
 | Testes de carga (bônus) | ⚠️ | Só o teste de concorrência com 20 threads; sem k6/Gatling |
 | Processo de GCS documentado | ✅ | Pacote 2, doc 05 |
 | GCS aplicado no repositório | ❌ | Código não commitado; branch `develop` não existe |

@@ -46,3 +46,11 @@ export const pct = (part: number, total: number) => (total ? Math.round((part / 
 export function cx(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(' ');
 }
+
+/** Forma de pagamento como o cliente lê no comprovante. */
+export function paymentLabel(method?: 'CREDIT_CARD' | 'PIX' | 'CASH', last4?: string): string {
+  if (method === 'PIX') return 'PIX';
+  if (method === 'CASH') return 'Dinheiro (bilheteria)';
+  if (method === 'CREDIT_CARD') return last4 ? `Cartão final ${last4}` : 'Cartão de crédito';
+  return '—';
+}

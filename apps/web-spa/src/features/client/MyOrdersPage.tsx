@@ -9,7 +9,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { Badge, Button, Card, ErrorState, EventCover, Progress, Spinner } from '@/components/ui';
 import { redactCpf } from '@/domain/cpf';
 import { REFUND_WINDOW_DAYS } from '@/domain/purchaseRules';
-import { cx, daysUntil, formatDate, formatDateTime, formatMoney } from '@/lib/format';
+import { cx, daysUntil, formatDate, formatDateTime, formatMoney, paymentLabel } from '@/lib/format';
 
 type Tab = 'todos' | 'proximos' | 'passados';
 const isPast = (o: Order) => Date.parse(o.event.startsAt) < Date.now();
@@ -48,7 +48,7 @@ function OrderCard({ order }: { order: Order }) {
           <div className="mt-3 flex items-center justify-between rounded-lg bg-surface px-3 py-2 text-sm">
             <span className="flex items-center gap-1.5 text-muted">
               <CreditCard className="size-4" aria-hidden />
-              {order.payment?.method === 'PIX' ? 'PIX instantâneo' : `Cartão final ${order.payment?.last4 ?? '****'}`} ({order.payment?.installments ?? 1}x)
+              {paymentLabel(order.payment?.method, order.payment?.last4)} ({order.payment?.installments ?? 1}x)
             </span>
             <b className="text-lg tabular">{formatMoney(order.totals.totalCents)}</b>
           </div>

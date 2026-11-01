@@ -75,6 +75,11 @@ async function asUser<T>(user: User, fn: () => Promise<T>): Promise<T> {
   }
 }
 
+/** O ingresso é de quem comprou ou de quem tem o CPF vinculado a ele. */
+function mineOrHolder(t: { userId: string; holderCpf: string }, user: User): boolean {
+  return t.userId === user.id || (!!user.cpf && normalizeCpf(t.holderCpf) === normalizeCpf(user.cpf));
+}
+
 function clientById(id: string): User {
   const u = users.find((x) => x.id === id && x.roles.includes('ROLE_CLIENT'));
   if (!u) throw new ApiError(404, 'Cliente não encontrado');
@@ -319,7 +324,7 @@ export const mockApi: BolsoPassApi = {
       const user = users.find(
         (u) =>
           (u.badge === badge.trim().toUpperCase() || u.email === badge.trim().toLowerCase()) &&
-          u.roles.includes('ROLE_OPERATOR'),
+          (u.roles.includes('ROLE_OPERATOR') || u.roles.includes('ROLE_SELLER')),
       );
       if (!user || (user as { pin?: string }).pin !== pin) {
         throw new UnauthorizedError('Credencial ou PIN inválidos');
@@ -586,7 +591,8 @@ export const mockApi: BolsoPassApi = {
       await delay();
       const user = requireRole('ROLE_CLIENT');
       return [...tickets.values()]
-        .filter((t) => t.userId === user.id)
+        // Comprados pela pessoa ou em que ela é a titular pelo CPF (venda no balcão, presente de amigo).
+        .filter((t) => mineOrHolder(t, user))
         .map(({ userId: _u, holderCpf: _c, eventId: _e, ...t }) => t);
     },
     async get(ticketId) {
@@ -594,7 +600,7 @@ export const mockApi: BolsoPassApi = {
       const user = requireRole('ROLE_CLIENT');
       const t = tickets.get(ticketId);
       // Doc 07: só o titular do pedido vê o ingresso.
-      if (!t || t.userId !== user.id) throw new ForbiddenError('Ingresso não pertence a você');
+      if (!t || !mineOrHolder(t, user)) throw new ForbiddenError('Ingresso não pertence a você');
       const { userId: _u, holderCpf: _c, eventId: _e, ...out } = t;
       return out;
     },
@@ -602,7 +608,7 @@ export const mockApi: BolsoPassApi = {
       await delay(40, 90);
       const user = requireRole('ROLE_CLIENT');
       const t = tickets.get(ticketId);
-      if (!t || t.userId !== user.id) throw new ForbiddenError();
+      if (!t || !mineOrHolder(t, user)) throw new ForbiddenError();
       const window = qrWindow(Date.now());
       const payload: QrPayload = {
         tid: t.id,
@@ -814,7 +820,7 @@ export const mockApi: BolsoPassApi = {
   operator: {
     async listAssignedEvents() {
       await delay();
-      requireRole('ROLE_OPERATOR', 'ROLE_ADMIN');
+      requireRole('ROLE_OPERATOR', 'ROLE_SELLER');
       const list: AssignedEvent[] = [
         { event: summary(findEvent('evt-synthwave')), checkedInPct: 72, gatesOpen: true, gates },
         { event: summary(findEvent('evt-neon')), checkedInPct: 0, gatesOpen: false, gates },
@@ -823,7 +829,7 @@ export const mockApi: BolsoPassApi = {
     },
     async downloadCache(eventId) {
       await delay(300, 600);
-      requireRole('ROLE_OPERATOR', 'ROLE_ADMIN');
+      requireRole('ROLE_OPERATOR');
       const ev = findEvent(eventId);
       const cache: OfflineTicketCache = {
         eventId,
@@ -857,7 +863,7 @@ export const mockApi: BolsoPassApi = {
     },
     async syncScans(eventId, scans) {
       await delay(200, 400);
-      requireRole('ROLE_OPERATOR', 'ROLE_ADMIN');
+      requireRole('ROLE_OPERATOR');
       const used = usedTickets.get(eventId) ?? {};
       let accepted = 0;
       for (const s of scans) {
@@ -874,7 +880,7 @@ export const mockApi: BolsoPassApi = {
     boxOffice: {
       async findCustomer(cpf) {
         await delay();
-        requireRole('ROLE_OPERATOR', 'ROLE_ADMIN');
+        requireRole('ROLE_OPERATOR', 'ROLE_SELLER');
         if (!isValidCpf(cpf)) throw new ApiError(400, 'CPF inválido');
         const u = users.find((x) => x.roles.includes('ROLE_CLIENT') && normalizeCpf(x.cpf ?? '') === normalizeCpf(cpf));
         if (!u) throw new ApiError(404, 'Cliente com este CPF não encontrado');
@@ -882,7 +888,7 @@ export const mockApi: BolsoPassApi = {
       },
       async registerCustomer(input) {
         await delay();
-        requireRole('ROLE_OPERATOR', 'ROLE_ADMIN');
+        requireRole('ROLE_OPERATOR', 'ROLE_SELLER');
         if (!isValidCpf(input.cpf)) throw new ApiError(400, 'CPF inválido');
         if (users.some((x) => normalizeCpf(x.cpf ?? '') === normalizeCpf(input.cpf))) throw new ConflictError('Já existe cliente com este CPF');
         if (input.name.trim().split(/\s+/).length < 2) throw new ApiError(400, 'Informe nome e sobrenome');
@@ -899,11 +905,11 @@ export const mockApi: BolsoPassApi = {
         return customerView(u, true);
       },
       async getSeatMap(eventId) {
-        requireRole('ROLE_OPERATOR', 'ROLE_ADMIN');
+        requireRole('ROLE_OPERATOR', 'ROLE_SELLER');
         return asUser(users.find((u) => u.roles.includes('ROLE_ADMIN'))!, () => mockApi.catalog.getSeatMap(eventId));
       },
       async reserve(eventId, customerId, seatIds) {
-        requireRole('ROLE_OPERATOR', 'ROLE_ADMIN');
+        requireRole('ROLE_OPERATOR', 'ROLE_SELLER');
         return asUser(clientById(customerId), async () => {
           const reservation = await mockApi.inventory.reserveSeats(eventId, seatIds);
           const { order } = await mockApi.orders.getReservation(reservation.id);
@@ -911,11 +917,11 @@ export const mockApi: BolsoPassApi = {
         });
       },
       async pay(customerId, request, idempotencyKey) {
-        requireRole('ROLE_OPERATOR', 'ROLE_ADMIN');
+        requireRole('ROLE_OPERATOR', 'ROLE_SELLER');
         return asUser(clientById(customerId), () => mockApi.orders.pay(request, idempotencyKey));
       },
       async giveUp(customerId, reservationId) {
-        requireRole('ROLE_OPERATOR', 'ROLE_ADMIN');
+        requireRole('ROLE_OPERATOR', 'ROLE_SELLER');
         return asUser(clientById(customerId), () => mockApi.orders.giveUp(reservationId));
       },
     },

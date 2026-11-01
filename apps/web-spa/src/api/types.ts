@@ -5,7 +5,7 @@ import type { Seat, SeatKind, SeatStatus } from '@/domain/seat';
 import type { InvalidReason, ScanStatus } from '@/domain/ticketQr';
 
 /** Perfis do RF-02 (claim `roles` do JWT). */
-export type Role = 'ROLE_CLIENT' | 'ROLE_ORGANIZER' | 'ROLE_OPERATOR' | 'ROLE_ADMIN';
+export type Role = 'ROLE_CLIENT' | 'ROLE_ORGANIZER' | 'ROLE_OPERATOR' | 'ROLE_ADMIN' | 'ROLE_SELLER';
 
 export interface User {
   id: string;
@@ -141,7 +141,8 @@ export interface OrderItem {
   ticketId?: string;
 }
 
-export type PaymentMethod = 'CREDIT_CARD' | 'PIX';
+/** CASH (dinheiro) só existe na venda no balcão da bilheteria. */
+export type PaymentMethod = 'CREDIT_CARD' | 'PIX' | 'CASH';
 
 export interface Order {
   id: string;

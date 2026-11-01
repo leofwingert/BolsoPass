@@ -1,4 +1,4 @@
-import { LogIn, ScanLine, ShieldCheck, UserRound } from 'lucide-react';
+import { CreditCard, LogIn, ScanLine, ShieldCheck, UserRound } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { errorMessage } from '@/api/errors';
@@ -12,7 +12,8 @@ import { cx } from '@/lib/format';
 const QUICK = [
   { key: 'cliente', label: 'Cliente', sub: 'Compra de ingressos', icon: UserRound, id: 'sarah@bolsopass.io', secret: 'bolsopass', operator: false },
   { key: 'admin', label: 'Admin', sub: 'Gestão de eventos', icon: ShieldCheck, id: 'admin@bolsopass.io', secret: 'bolsopass', operator: false },
-  { key: 'bilheteria', label: 'Bilheteria', sub: 'Venda e check-in', icon: ScanLine, id: 'OP-88219', secret: '123456', operator: true },
+  { key: 'bilheteria', label: 'Bilheteria', sub: 'Portaria e venda', icon: ScanLine, id: 'OP-88219', secret: '123456', operator: true },
+  { key: 'venda', label: 'Venda', sub: 'Terminal de venda', icon: CreditCard, id: 'VD-20001', secret: '654321', operator: true },
 ] as const;
 
 /**
@@ -78,7 +79,7 @@ export default function LoginPage() {
 
       <div>
         <p className="mb-2 text-center text-xs font-bold tracking-wider text-muted uppercase">Acesso rápido (demonstração)</p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {QUICK.map((q) => (
             <button
               key={q.key}
@@ -97,7 +98,7 @@ export default function LoginPage() {
           ))}
         </div>
         <p className="mt-2 text-center text-[11px] text-muted">
-          Senhas: <span className="font-mono">bolsopass</span> (cliente e admin) • PIN <span className="font-mono">123456</span> (bilheteria)
+          Senhas: <span className="font-mono">bolsopass</span> (cliente e admin) • PIN <span className="font-mono">123456</span> (bilheteria) • <span className="font-mono">654321</span> (venda)
         </p>
       </div>
     </div>

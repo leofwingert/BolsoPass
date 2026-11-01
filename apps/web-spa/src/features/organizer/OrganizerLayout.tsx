@@ -1,7 +1,7 @@
-import { Bell, CalendarPlus, ExternalLink, LayoutDashboard, ListChecks, ScanLine } from 'lucide-react';
+import { Bell, CalendarPlus, ExternalLink, LayoutDashboard, ListChecks } from 'lucide-react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthProvider';
-import { canAccess, hasAnyRole } from '@/auth/roles';
+import { hasAnyRole } from '@/auth/roles';
 import { UserMenu } from '@/components/UserMenu';
 import { Logo } from '@/components/ui';
 import { cx } from '@/lib/format';
@@ -31,11 +31,6 @@ export default function OrganizerLayout() {
       <NavLink to="/organizer/events/new" className={navClass}>
         <CalendarPlus className="size-4" aria-hidden /> Criar evento
       </NavLink>
-      {canAccess(user, 'operator') && (
-        <NavLink to="/operator/setup" className={navClass}>
-          <ScanLine className="size-4" aria-hidden /> Bilheteria
-        </NavLink>
-      )}
     </>
   );
 

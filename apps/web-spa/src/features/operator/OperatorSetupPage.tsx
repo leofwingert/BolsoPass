@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/api';
 import { errorMessage } from '@/api/errors';
-import type { AssignedEvent, Gate } from '@/api/types';
+import type { AssignedEvent, Gate, OfflineTicketCache } from '@/api/types';
 import { useAuth } from '@/auth/AuthProvider';
+import { isSellerOnly } from '@/auth/roles';
 import { Badge, Button, Card, ErrorState, EventCover, Spinner } from '@/components/ui';
 import { cx, formatDateTime, formatNumber } from '@/lib/format';
 import { useOperator } from './OperatorProvider';
@@ -23,7 +24,14 @@ function Steps({ step }: { step: 1 | 2 }) {
   );
 }
 
-/** Posto de leitura: escolhe evento e portão e baixa a base para validar sem internet. */
+/** Balcão da terminal de venda: só o evento (sem portão nem base de leitura). */
+const SALES_DESK: Gate = { id: 'balcao', name: 'Bilheteria', turnstiles: 'Balcão', description: 'Terminal de venda', icon: 'door' };
+const emptyCache = (eventId: string): OfflineTicketCache => ({ eventId, publicKeyJwk: {}, syncedAt: new Date().toISOString(), tickets: {}, used: {} });
+
+/**
+ * Posto da bilheteria. Portaria: escolhe evento e portão e baixa a base para validar sem internet.
+ * Terminal de venda: escolhe só o evento que vai vender.
+ */
 export default function OperatorSetupPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -31,15 +39,17 @@ export default function OperatorSetupPage() {
   const assigned = useQuery({ queryKey: ['operator', 'events'], queryFn: api.operator.listAssignedEvents });
   const [eventId, setEventId] = useState(op.station?.event.id ?? '');
   const [gateId, setGateId] = useState(op.station?.gate.id ?? '');
+  const seller = isSellerOnly(user);
 
   const start = useMutation({
     mutationFn: async ({ item, gate }: { item: AssignedEvent; gate: Gate }) => {
-      const cache = await api.operator.downloadCache(item.event.id);
+      // Terminal de venda não lê QR: não precisa baixar a base de ingressos.
+      const cache = seller ? emptyCache(item.event.id) : await api.operator.downloadCache(item.event.id);
       return { item, gate, cache };
     },
     onSuccess: ({ item, gate, cache }) => {
       op.configure(item.event, gate, cache);
-      navigate('/operator/scan');
+      navigate(seller ? '/operator/sell' : '/operator/scan');
     },
   });
 
@@ -48,7 +58,7 @@ export default function OperatorSetupPage() {
 
   const list = assigned.data;
   const selected = list.find((i) => i.event.id === (eventId || list[0]?.event.id));
-  const gate = selected?.gates.find((g) => g.id === gateId);
+  const gate = seller ? SALES_DESK : selected?.gates.find((g) => g.id === gateId);
   const switching = !!op.station && !!selected && op.station.event.id !== selected.event.id;
   const blocked = switching && op.pending > 0;
 
@@ -60,12 +70,12 @@ export default function OperatorSetupPage() {
           <p className="flex items-center gap-2 text-lg font-extrabold">{user?.name} {user?.badge && <Badge>{user.badge}</Badge>}</p>
           <p className="flex items-center gap-1.5 text-xs text-muted">
             <span className={cx('size-2 rounded-full', op.station ? 'bg-ok' : 'bg-amber-500')} />
-            {op.station ? `Posto: ${op.station.gate.name} • ${op.station.event.title}` : 'Posto: aguardando escolha do evento e do portão'}
+            {op.station ? `${seller ? 'Vendendo' : `Posto: ${op.station.gate.name}`} • ${op.station.event.title}` : seller ? 'Terminal de venda: escolha o evento a vender' : 'Posto: aguardando escolha do evento e do portão'}
           </p>
         </div>
       </Card>
 
-      <Steps step={gate ? 2 : 1} />
+      {!seller && <Steps step={gate ? 2 : 1} />}
 
       <section>
         <div className="flex items-center justify-between">
@@ -101,7 +111,7 @@ export default function OperatorSetupPage() {
         </div>
       </section>
 
-      {selected && (
+      {selected && !seller && (
         <section>
           <h2 className="text-lg font-bold">Portão de acesso</h2>
           <p className="text-xs text-muted">Selecione onde você está posicionado.</p>
@@ -125,10 +135,10 @@ export default function OperatorSetupPage() {
         </section>
       )}
 
-      <Card className="flex items-center gap-3 p-4">
+      {!seller && <Card className="flex items-center gap-3 p-4">
         <HardDriveDownload className="size-5 shrink-0 text-ok" aria-hidden />
         <p className="text-xs text-muted">Ao confirmar, o aparelho baixa a lista de ingressos e a chave de validação. As leituras continuam funcionando mesmo se a internet cair.</p>
-      </Card>
+      </Card>}
 
       {blocked && (
         <p role="alert" className="rounded-lg bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700">
@@ -139,7 +149,7 @@ export default function OperatorSetupPage() {
 
       <div className="sticky bottom-20 grid gap-1">
         <Button size="lg" disabled={!selected || !gate || blocked} loading={start.isPending} onClick={() => selected && gate && start.mutate({ item: selected, gate })}>
-          <QrCode className="size-5" aria-hidden /> {gate ? 'Confirmar posto e iniciar leituras' : 'Escolha o portão'}
+          <QrCode className="size-5" aria-hidden /> {seller ? 'Vender para este evento' : gate ? 'Confirmar posto e iniciar leituras' : 'Escolha o portão'}
         </Button>
       </div>
     </div>

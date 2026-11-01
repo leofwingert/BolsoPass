@@ -40,7 +40,8 @@ A tela é feita para celular (navegação embaixo), mas também funciona no comp
 ## 2. Como rodar
 
 Igual às versões anteriores. Abra `http://localhost:3000/auth/login` e clique em **Bilheteria**
-(matrícula `OP-88219`, PIN `123456`).
+(matrícula `OP-88219`, PIN `123456`) para a portaria, ou em **Venda** (matrícula `VD-20001`, PIN `654321`)
+para o terminal de venda, que só vende.
 
 **Câmera:** o navegador só libera câmera (e a validação criptográfica) em **HTTPS** ou em
 **localhost**. No computador, use a visão de celular do navegador (F12). Abrindo pelo IP da rede
@@ -59,7 +60,7 @@ leia o QR da tela com a câmera (ou copie o código para "Digitar código").
 | `/operator/setup` | Portão | Dados do operador; escolha do evento (portões abertos/fechados, ingressos, % que já entrou) e do portão; baixa a base offline ao confirmar |
 | `/operator/scan` | Leitor QR | Câmera com moldura, lanterna, troca de câmera, "Digitar código"; entradas no evento e leituras por minuto; última validação |
 | (na mesma rota) | Resultado | Verde liberado, laranja já utilizado, vermelho inválido, roxo outro evento; titular, CPF parcial, setor e código; bipe + vibração; volta sozinho em 3 s quando liberado |
-| `/operator/sell` | Vender (balcão) | 1) CPF do cliente → mostra **nome e telefone** (e-mail parcial) para confirmar; sem cadastro, faz o cadastro rápido. 2) **Lugares vagos** do evento do posto, por setor, até 6 por venda. 3) Titular de cada ingresso (o 1º já vem com o cliente), **cartão ou PIX**, total com taxa e prazo da reserva. 4) Venda concluída com os códigos dos ingressos |
+| `/operator/sell` | Vender (balcão, estilo maquininha) | Botão **Trocar evento** no topo (lista de eventos à venda; bloqueado só durante o pagamento) e **Voltar** da etapa de lugares. 1) CPF do cliente → mostra **nome e telefone** (e-mail parcial) para confirmar; sem cadastro, faz o cadastro rápido. 2) **Lugares vagos** do evento, por setor, até 6 por venda. 3) **CPF vinculado a cada ingresso** (o 1º já vem com o cliente) e cobrança no visor: **crédito** (1x a 6x, "aproximar cartão" simulado, opção de simular recusa), **PIX** (QR na tela e "PIX recebido" simulado) ou **dinheiro** (valor recebido, atalhos de notas e troco). 4) **Comprovante** em formato de cupom, com titular, CPF parcial e código de cada ingresso; botão de imprimir |
 | `/operator/history` | Histórico | Totais do turno (lidos, ritmo, aprovados, recusados), busca, filtros, detalhes e o que ainda está na fila de envio |
 | `/operator/offline` | Modo contingência | Situação da conexão, próxima sincronização, base no aparelho, fila de envio, "Tentar reconectar agora" e regras para operar sem internet |
 
@@ -81,6 +82,9 @@ leia o QR da tela com a câmera (ou copie o código para "Digitar código").
 | Trocar de evento com entradas ainda não enviadas é bloqueado | RF-13 | `OperatorSetupPage` |
 | Estado do posto (evento, portão, base, leituras) salvo no aparelho: sobrevive a recarregar a página | RNF | `OperatorProvider` |
 | Só `ROLE_OPERATOR` (ou admin) acessa a portaria | RF-02 | `RequireArea`, `SecurityConfig` |
+| **Dois perfis na bilheteria**: portaria (`ROLE_OPERATOR`: lê QR e vende) e terminal de venda (`ROLE_SELLER`: só vende, escolhe só o evento). O **admin não acessa a bilheteria** | RF-02 | `roles.ts`, `ManagementController`, `BoxOfficeController` |
+| **Dinheiro só no balcão**: a compra online com `CASH` é recusada (400) | RF-11 | `OrderController` |
+| **CPF vinculado ao ingresso**: o ingresso aparece na carteira da conta com aquele CPF, mesmo que outra pessoa tenha pago (venda no balcão ou acompanhante), e essa pessoa pode abrir o QR | RF-13 | `TicketService.mine` |
 | **Venda no balcão usa o mesmo fluxo do site**: trava atômica do assento, reserva de 10 min, limite de ingressos por CPF, `Idempotency-Key`, outbox e ingresso com QR na carteira do cliente | RF-06 a RF-13 | `BoxOfficeService` |
 | Cliente identificado pelo **CPF válido** (com ou sem máscara); o balcão vê nome e telefone, e o e-mail só parcial | RF-02 / LGPD | `BoxOfficeService.find` |
 | CPF sem cadastro: cadastro rápido com nome, sobrenome e telefone com DDD | RF-03 | `BoxOfficeService.register` |
@@ -125,8 +129,8 @@ leia o QR da tela com a câmera (ou copie o código para "Digitar código").
 
 | Verificação | Resultado |
 |---|---|
-| Frontend — `pnpm coverage` | 75 testes passando, **91,4% das linhas** (inclui 3 testes da venda no balcão pela tela) |
-| Backend — `./mvnw test` | 46 testes passando, **92,5% das linhas** (inclui 4 testes da venda no balcão pela API) |
+| Frontend — `pnpm coverage` | 77 testes passando, **91,5% das linhas** (inclui 5 testes da venda no balcão: terminal de venda, PIX, dinheiro com troco, recusa, admin barrado) |
+| Backend — `./mvnw test` | 48 testes passando, **92,9% das linhas** (inclui 6 testes da venda no balcão: dinheiro, CPF vinculado, admin barrado) |
 | Venda no balcão no Chrome (celular) contra o servidor real | ✔ CPF → Sarah Jensen Oliveira, (11) 98844-3210 → 2 lugares → cartão aprovado → 2 ingressos emitidos (cliente + acompanhante) |
 | | ✔ Limite por CPF: a 5ª compra da mesma cliente no setor é barrada com a mensagem do limite |
 | Frontend — lint e checagem de tipos | Sem erros |
@@ -150,7 +154,8 @@ leia o QR da tela com a câmera (ou copie o código para "Digitar código").
 |---|---|
 | Abrir o app do zero sem internet (recarregar a página offline) | Precisa virar app instalável (PWA com service worker) |
 | HTTPS no servidor de desenvolvimento, para testar a câmera num celular pela rede | Não configurado |
-| Venda no balcão em dinheiro | Só cartão e PIX, como definido para esta versão; dinheiro exigiria fechamento de caixa |
+| Fechamento de caixa do terminal (total em dinheiro por turno) | Não iniciado |
+| Maquininha real (integração com adquirente) | Pagamento simulado; cartão final 0000 simula recusa |
 | Venda no balcão sem internet | Exige servidor (trava do assento); o leitor de QR continua offline |
 | Categoria do ingresso (inteira/meia) na base offline | O servidor ainda envia sempre "Inteira" |
 | Indicar o portão certo quando o setor do ingresso entra por outro portão | Não iniciado |

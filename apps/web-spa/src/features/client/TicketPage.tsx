@@ -22,7 +22,7 @@ import { errorMessage } from '@/api/errors';
 import type { Ticket } from '@/api/types';
 import { Badge, Button, Card, ErrorState, EventCover, Progress, Spinner } from '@/components/ui';
 import { QR_ROTATION_MS, msUntilRotation } from '@/domain/ticketQr';
-import { cx, formatDateTime, formatMoney, formatTime } from '@/lib/format';
+import { cx, formatDateTime, formatMoney, formatTime, paymentLabel } from '@/lib/format';
 
 /** QR que muda a cada 15 s (print de tela não passa na catraca). */
 function DynamicQr({ ticket }: { ticket: Ticket }) {
@@ -237,7 +237,7 @@ export default function TicketPage() {
               {order.payment && (
                 <p className="mt-3 flex items-center gap-2 rounded-lg bg-surface px-3 py-2 text-xs">
                   <CreditCard className="size-4" aria-hidden />
-                  {order.payment.method === 'PIX' ? 'PIX' : `Cartão **** ${order.payment.last4}`} • {order.payment.installments}x
+                  {paymentLabel(order.payment.method, order.payment.last4)} • {order.payment.installments}x
                   {order.paidAt && ` • ${formatTime(order.paidAt)}`}
                 </p>
               )}
