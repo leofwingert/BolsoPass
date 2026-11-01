@@ -116,7 +116,7 @@ e abre a área certa. Embaixo do formulário há botões de **acesso rápido** c
 | Continuar validando **sem internet**; as entradas ficam na fila e são enviadas quando a rede volta | ✅ |
 | Ver o histórico do turno: lidos, aprovados, recusados, busca e filtros | ✅ |
 | Abrir o app do zero sem internet (app instalável/PWA) | ⏳ |
-| Venda no balcão | ⏳ |
+| **Vender no balcão**: buscar o cliente pelo CPF (nome e telefone), escolher lugares vagos e cobrar no cartão ou PIX; cadastro rápido para quem não tem conta | ✅ |
 
 ### 3.3 Garantias técnicas já implementadas
 

@@ -368,3 +368,24 @@ export interface OfflineTicketCache {
   tickets: Record<string, { holderName: string; holderCpf: string; sectorName: string; categoryName: string }>;
   used: Record<string, { at: string; gate: string }>;
 }
+
+// ---------- Venda no balcão (bilheteria) ----------
+
+/** Cliente encontrado pelo CPF no balcão: nome e telefone para confirmar com a pessoa. */
+export interface BoxOfficeCustomer {
+  id: string;
+  name: string;
+  phone?: string;
+  /** Só dígitos. */
+  cpf: string;
+  /** Parcial (LGPD): an***@exemplo.com */
+  email?: string;
+  newCustomer: boolean;
+}
+
+export interface NewBoxOfficeCustomer {
+  cpf: string;
+  name: string;
+  phone: string;
+  email?: string;
+}

@@ -158,7 +158,6 @@ roteiros ponta a ponta no navegador para os 3 perfis.
 | Reembolso de 7 dias (CDC) | **Precisa de decisão**: o doc 06 diz que `PAGO` é final, então o estorno exige um fluxo próprio |
 | Editar e cancelar evento publicado | Botões existem desativados no admin |
 | Wallet e transferência de ingresso | Botões desativados |
-| Venda no balcão da bilheteria | Não iniciada |
 | App da bilheteria instalável (abrir sem internet) e HTTPS de desenvolvimento | Necessário para usar a câmera num celular pela rede |
 
 ---

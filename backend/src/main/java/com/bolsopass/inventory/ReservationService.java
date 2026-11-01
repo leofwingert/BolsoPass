@@ -67,12 +67,21 @@ public class ReservationService {
 
   @Transactional
   public ReservationView reserve(String userId, String eventId, List<String> requestedSeatIds) {
+    return reserve(userId, eventId, requestedSeatIds, false);
+  }
+
+  /**
+   * @param boxOffice venda no balcão da bilheteria: o comprador está presente, então não passa
+   *     pela sala de espera virtual. Todas as outras regras (trava, limite por CPF) valem igual.
+   */
+  @Transactional
+  public ReservationView reserve(String userId, String eventId, List<String> requestedSeatIds, boolean boxOffice) {
     List<String> seatIds = new ArrayList<>(new LinkedHashSet<>(requestedSeatIds));
     if (seatIds.isEmpty()) throw ApiException.badRequest("Selecione ao menos um assento");
 
     Event event = catalog.find(eventId);
     if (!event.isOnSale()) throw ApiException.conflict("As vendas deste evento não estão abertas");
-    if (event.isHasVirtualQueue() && !queue.isAdmitted(eventId, userId)) {
+    if (!boxOffice && event.isHasVirtualQueue() && !queue.isAdmitted(eventId, userId)) {
       throw ApiException.conflict("Aguarde sua vez na sala de espera virtual");
     }
 

@@ -2,6 +2,8 @@ C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bo
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\audit\AuditLogRepository.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\audit\AuditService.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\BolsoPassApplication.java
+C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\boxoffice\BoxOfficeController.java
+C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\boxoffice\BoxOfficeService.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\catalog\CatalogService.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\catalog\Event.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\catalog\EventController.java

@@ -23,6 +23,7 @@ const OperatorSetupPage = lazy(() => import('@/features/operator/OperatorSetupPa
 const OperatorScanPage = lazy(() => import('@/features/operator/OperatorScanPage'));
 const OperatorHistoryPage = lazy(() => import('@/features/operator/OperatorHistoryPage'));
 const OperatorOfflinePage = lazy(() => import('@/features/operator/OperatorOfflinePage'));
+const OperatorSalePage = lazy(() => import('@/features/operator/OperatorSalePage'));
 const NotFoundPage = lazy(() => import('@/features/NotFoundPage'));
 
 const page = (node: ReactNode) => <Suspense fallback={<Spinner />}>{node}</Suspense>;
@@ -69,6 +70,7 @@ export const routes: RouteObject[] = [
       { path: 'scan', element: page(<OperatorScanPage />) },
       { path: 'history', element: page(<OperatorHistoryPage />) },
       { path: 'offline', element: page(<OperatorOfflinePage />) },
+      { path: 'sell', element: page(<OperatorSalePage />) },
     ],
   },
 ];

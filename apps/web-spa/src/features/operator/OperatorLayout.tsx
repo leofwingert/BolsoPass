@@ -1,4 +1,4 @@
-import { DoorOpen, History, QrCode, Wifi, WifiOff } from 'lucide-react';
+import { DoorOpen, History, QrCode, ShoppingCart, Wifi, WifiOff } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { UserMenu } from '@/components/UserMenu';
@@ -11,6 +11,7 @@ const TITLES: Record<string, string> = {
   '/operator/history': 'Histórico de leituras',
   '/operator/setup': 'Posto de leitura',
   '/operator/offline': 'Modo contingência',
+  '/operator/sell': 'Venda no balcão',
 };
 
 const tab = ({ isActive }: { isActive: boolean }) =>
@@ -47,6 +48,7 @@ function Shell() {
 
       <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto flex max-w-xl border-t border-line bg-white pb-[env(safe-area-inset-bottom)]" aria-label="Portaria">
         <NavLink to="/operator/scan" className={tab}><QrCode className="size-5" aria-hidden /> Leitor QR</NavLink>
+        <NavLink to="/operator/sell" className={tab}><ShoppingCart className="size-5" aria-hidden /> Vender</NavLink>
         <NavLink to="/operator/history" className={tab}><History className="size-5" aria-hidden /> Histórico</NavLink>
         <NavLink to="/operator/setup" className={tab}><DoorOpen className="size-5" aria-hidden /> Portão</NavLink>
       </nav>
@@ -62,6 +64,7 @@ export default function OperatorLayout() {
     void import('./OperatorHistoryPage');
     void import('./OperatorOfflinePage');
     void import('./OperatorSetupPage');
+    void import('./OperatorSalePage');
     void import('jsqr');
   }, []);
   return (

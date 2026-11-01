@@ -1,0 +1,10 @@
+.git
+.github
+.idea
+.vscode
+node_modules
+apps/web-spa/node_modules
+apps/web-spa/dist
+apps/web-spa/coverage
+backend/target
+**/*.log

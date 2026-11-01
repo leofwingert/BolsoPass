@@ -60,5 +60,16 @@ export const httpApi: BolsoPassApi = {
     downloadCache: (eventId) => http(`/operator/events/${eventId}/cache`),
     syncScans: (eventId, scans) =>
       http(`/operator/events/${eventId}/scans`, { method: 'POST', body: { scans } }),
+    boxOffice: {
+      findCustomer: (cpf) => http(`/operator/box-office/customers?cpf=${encodeURIComponent(cpf)}`),
+      registerCustomer: (input) => http('/operator/box-office/customers', { method: 'POST', body: input }),
+      getSeatMap: (eventId) => http(`/operator/box-office/events/${eventId}/seats`),
+      reserve: (eventId, customerId, seatIds) =>
+        http(`/operator/box-office/events/${eventId}/reservations`, { method: 'POST', body: { customerId, seatIds } }),
+      pay: (customerId, payment, idempotencyKey) =>
+        http('/operator/box-office/checkout', { method: 'POST', body: { customerId, payment }, idempotencyKey }),
+      giveUp: (customerId, reservationId) =>
+        http(`/operator/box-office/reservations/${reservationId}/give-up`, { method: 'POST', body: { customerId } }),
+    },
   },
 };

@@ -1,5 +1,7 @@
 import type {
   AssignedEvent,
+  BoxOfficeCustomer,
+  NewBoxOfficeCustomer,
   EventCategory,
   EventDetail,
   CreateEventInput,
@@ -81,5 +83,14 @@ export interface BolsoPassApi {
     downloadCache(eventId: string): Promise<OfflineTicketCache>;
     /** Envia leituras (inclusive as feitas offline). Idempotente por id da leitura. */
     syncScans(eventId: string, scans: ScanRecord[]): Promise<{ accepted: number }>;
+    /** Venda no balcão: o operador compra em nome do cliente identificado pelo CPF. */
+    boxOffice: {
+      findCustomer(cpf: string): Promise<BoxOfficeCustomer>;
+      registerCustomer(input: NewBoxOfficeCustomer): Promise<BoxOfficeCustomer>;
+      getSeatMap(eventId: string): Promise<SeatMap>;
+      reserve(eventId: string, customerId: string, seatIds: string[]): Promise<{ reservation: Reservation; order: Order }>;
+      pay(customerId: string, request: PaymentRequest, idempotencyKey: string): Promise<Order>;
+      giveUp(customerId: string, reservationId: string): Promise<void>;
+    };
   };
 }

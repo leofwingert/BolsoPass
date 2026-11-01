@@ -1,5 +1,6 @@
 import type { BolsoPassApi } from '@/api/contract';
 import {
+  ApiError,
   ConflictError,
   ForbiddenError,
   ReservationExpiredError,
@@ -15,6 +16,7 @@ import {
 } from '@/api/realtime';
 import type {
   AssignedEvent,
+  BoxOfficeCustomer,
   EventDetail,
   EventSummary,
   OfflineTicketCache,
@@ -27,6 +29,7 @@ import type {
   Ticket,
   User,
 } from '@/api/types';
+import { isValidCpf, maskCpf, normalizeCpf } from '@/domain/cpf';
 import { canSubmitPayment, transition } from '@/domain/order';
 import { computeTotals } from '@/domain/pricing';
 import { validateHolders } from '@/domain/purchaseRules';
@@ -59,7 +62,32 @@ const statusListeners = new Set<(s: ConnectionStatus) => void>();
 
 const uid = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 
+/** Venda no balcão: durante a chamada, o operador age como o cliente. */
+let actingAs: User | undefined;
+
+async function asUser<T>(user: User, fn: () => Promise<T>): Promise<T> {
+  const previous = actingAs;
+  actingAs = user;
+  try {
+    return await fn();
+  } finally {
+    actingAs = previous;
+  }
+}
+
+function clientById(id: string): User {
+  const u = users.find((x) => x.id === id && x.roles.includes('ROLE_CLIENT'));
+  if (!u) throw new ApiError(404, 'Cliente não encontrado');
+  return u;
+}
+
+function customerView(u: User, newCustomer: boolean): BoxOfficeCustomer {
+  const [local = '', domain = ''] = u.email.split('@');
+  return { id: u.id, name: u.name, phone: u.phone, cpf: normalizeCpf(u.cpf ?? ''), email: `${local.slice(0, 2)}***@${domain}`, newCustomer };
+}
+
 function currentUser(): User {
+  if (actingAs) return actingAs;
   const token = getAccessToken();
   const id = token?.startsWith('mock.') ? atob(token.split('.')[1] ?? '') : undefined;
   const user = users.find((u) => u.id === id);
@@ -841,6 +869,55 @@ export const mockApi: BolsoPassApi = {
       }
       usedTickets.set(eventId, used);
       return { accepted };
+    },
+    // Venda no balcão: o operador age em nome do cliente durante a chamada (mesmas regras do site).
+    boxOffice: {
+      async findCustomer(cpf) {
+        await delay();
+        requireRole('ROLE_OPERATOR', 'ROLE_ADMIN');
+        if (!isValidCpf(cpf)) throw new ApiError(400, 'CPF inválido');
+        const u = users.find((x) => x.roles.includes('ROLE_CLIENT') && normalizeCpf(x.cpf ?? '') === normalizeCpf(cpf));
+        if (!u) throw new ApiError(404, 'Cliente com este CPF não encontrado');
+        return customerView(u, false);
+      },
+      async registerCustomer(input) {
+        await delay();
+        requireRole('ROLE_OPERATOR', 'ROLE_ADMIN');
+        if (!isValidCpf(input.cpf)) throw new ApiError(400, 'CPF inválido');
+        if (users.some((x) => normalizeCpf(x.cpf ?? '') === normalizeCpf(input.cpf))) throw new ConflictError('Já existe cliente com este CPF');
+        if (input.name.trim().split(/\s+/).length < 2) throw new ApiError(400, 'Informe nome e sobrenome');
+        if (input.phone.replace(/\D/g, '').length < 10) throw new ApiError(400, 'Informe um telefone com DDD');
+        const u = {
+          id: uid('u'),
+          name: input.name.trim(),
+          email: input.email?.includes('@') ? input.email.trim().toLowerCase() : `cpf${normalizeCpf(input.cpf)}@balcao.bolsopass.io`,
+          roles: ['ROLE_CLIENT'] as Role[],
+          cpf: maskCpf(input.cpf),
+          phone: input.phone.trim(),
+        };
+        users.push(u);
+        return customerView(u, true);
+      },
+      async getSeatMap(eventId) {
+        requireRole('ROLE_OPERATOR', 'ROLE_ADMIN');
+        return asUser(users.find((u) => u.roles.includes('ROLE_ADMIN'))!, () => mockApi.catalog.getSeatMap(eventId));
+      },
+      async reserve(eventId, customerId, seatIds) {
+        requireRole('ROLE_OPERATOR', 'ROLE_ADMIN');
+        return asUser(clientById(customerId), async () => {
+          const reservation = await mockApi.inventory.reserveSeats(eventId, seatIds);
+          const { order } = await mockApi.orders.getReservation(reservation.id);
+          return { reservation, order };
+        });
+      },
+      async pay(customerId, request, idempotencyKey) {
+        requireRole('ROLE_OPERATOR', 'ROLE_ADMIN');
+        return asUser(clientById(customerId), () => mockApi.orders.pay(request, idempotencyKey));
+      },
+      async giveUp(customerId, reservationId) {
+        requireRole('ROLE_OPERATOR', 'ROLE_ADMIN');
+        return asUser(clientById(customerId), () => mockApi.orders.giveUp(reservationId));
+      },
     },
   },
 };
