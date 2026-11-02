@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.Instant;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +32,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class BoxOfficeService {
   /** Dados do cliente que o operador vê no balcão. */
-  public record Customer(String id, String name, String phone, String cpf, String email, boolean newCustomer) {}
+  public record Customer(
+      String id, String name, String phone, String cpf, String email, boolean newCustomer,
+      String activationCode) {}
 
   public record NewCustomer(String cpf, String name, String phone, String email) {}
 
@@ -39,6 +44,7 @@ public class BoxOfficeService {
   private final CatalogService catalog;
   private final AuditService audit;
   private final PasswordEncoder encoder;
+  private final SecureRandom random = new SecureRandom();
 
   public BoxOfficeService(
       UserRepository users, ReservationService reservations, CheckoutService checkout,
@@ -55,8 +61,10 @@ public class BoxOfficeService {
     return digits.substring(0, 3) + "." + digits.substring(3, 6) + "." + digits.substring(6, 9) + "-" + digits.substring(9);
   }
 
-  private static Customer view(User u, boolean created) {
-    return new Customer(u.getId(), u.getName(), u.getPhone(), Cpf.digits(u.getCpf()), maskEmail(u.getEmail()), created);
+  private static Customer view(User u, boolean created, String activationCode) {
+    return new Customer(
+        u.getId(), u.getName(), u.getPhone(), Cpf.digits(u.getCpf()), maskEmail(u.getEmail()), created,
+        activationCode);
   }
 
   /** E-mail parcial no balcão (LGPD): an***@exemplo.com */
@@ -103,11 +111,12 @@ public class BoxOfficeService {
         ? in.email().trim().toLowerCase()
         : "cpf" + digits + "@balcao.bolsopass.io";
     if (users.findByEmail(email).isPresent()) throw ApiException.conflict("E-mail já cadastrado");
+    String activationCode = "%06d".formatted(random.nextInt(1_000_000));
     User u = users.save(new User("u-" + UUID.randomUUID(), in.name().trim(), email,
             encoder.encode(UUID.randomUUID().toString()), Set.of(Role.ROLE_CLIENT))
         .withContact(formatted(digits), in.phone().trim())
-        .markCounterAccount());
-    return view(u, true);
+        .markCounterAccount(encoder.encode(activationCode), Instant.now().plus(Duration.ofHours(24))));
+    return view(u, true, activationCode);
   }
 
   private User customer(String customerId) {

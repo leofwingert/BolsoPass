@@ -49,6 +49,8 @@ public class User {
    * pode assumi-la. Colunas novas ficam opcionais para não quebrar tabelas que já existem.
    */
   private Boolean counterAccount;
+  private String activationCodeHash;
+  private Instant activationCodeExpiresAt;
 
   private Instant createdAt;
 
@@ -79,9 +81,20 @@ public class User {
     return this;
   }
 
-  public User markCounterAccount() {
+  public User markCounterAccount(String activationCodeHash, Instant activationCodeExpiresAt) {
     this.counterAccount = true;
+    this.activationCodeHash = activationCodeHash;
+    this.activationCodeExpiresAt = activationCodeExpiresAt;
     return this;
+  }
+
+  public boolean canBeClaimedWith(String activationCode, org.springframework.security.crypto.password.PasswordEncoder encoder) {
+    return counterAccount
+        && activationCode != null
+        && activationCodeExpiresAt != null
+        && activationCodeExpiresAt.isAfter(Instant.now())
+        && activationCodeHash != null
+        && encoder.matches(activationCode, activationCodeHash);
   }
 
   /** O dono do CPF assume a conta criada no balcão: define e-mail, senha e telefone. */
@@ -91,6 +104,8 @@ public class User {
     this.passwordHash = passwordHash;
     this.phone = phone;
     this.counterAccount = false;
+    this.activationCodeHash = null;
+    this.activationCodeExpiresAt = null;
   }
 
   /** Troca o perfil: a conta tem um perfil só. Sem bilheteria, perde matrícula e PIN. */

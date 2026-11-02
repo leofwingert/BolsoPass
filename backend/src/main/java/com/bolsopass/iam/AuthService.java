@@ -51,7 +51,9 @@ public class AuthService {
   private record Failures(int count, Instant lockedUntil) {}
 
   /** Cadastro público: sempre cria um Cliente (não existe campo de perfil). */
-  public record RegisterRequest(String name, String email, String cpf, String phone, String password, boolean acceptTerms) {}
+  public record RegisterRequest(
+      String name, String email, String cpf, String phone, String password, boolean acceptTerms,
+      String activationCode) {}
 
   public record SessionDto(UserDto user, String accessToken, Instant expiresAt, String refreshToken) {}
 
@@ -148,6 +150,9 @@ public class AuthService {
     User user;
     if (owner != null) {
       if (!owner.isCounterAccount()) throw ApiException.conflict("CPF já cadastrado. Entre com seu e-mail e senha.");
+      if (!owner.canBeClaimedWith(in.activationCode(), passwordEncoder)) {
+        throw ApiException.conflict("Informe o código de ativação entregue no balcão");
+      }
       owner.claim(name, email, passwordEncoder.encode(in.password()), phone);
       user = owner;
       audit.log(null, AuditLog.Kind.SEGURANCA, "Conta do balcão assumida",
