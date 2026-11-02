@@ -86,8 +86,10 @@ public class ReservationService {
     }
 
     Instant now = Instant.now();
-    // Uma reserva aberta por comprador e evento: evita monopolizar assentos.
-    if (!reservations.findOpen(userId, eventId, now).isEmpty()) {
+    // Uma reserva aberta por comprador e evento: evita monopolizar assentos online.
+    // No balcão quem reserva é o operador, com o cliente presente: uma reserva online pendente
+    // dele não bloqueia a venda (ela expira sozinha; a máquina de estados não permite cancelá-la).
+    if (!boxOffice && !reservations.findOpen(userId, eventId, now).isEmpty()) {
       throw ApiException.conflict("Você já tem uma reserva ativa para este evento");
     }
 

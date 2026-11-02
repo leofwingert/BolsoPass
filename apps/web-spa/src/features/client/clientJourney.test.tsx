@@ -68,6 +68,26 @@ describe('jornada do cliente', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: /Desistir/ })).toBeNull(), { timeout: 4000 });
   });
 
+  it('cartão incompleto mostra o que falta; o cartão de teste paga na hora', async () => {
+    const { user, router } = await openAs('Cliente', '/events/evt-metal/seats');
+    const free = await screen.findAllByRole('button', { name: /disponível$/ });
+    await user.click(free[3]!);
+    await user.click(screen.getByRole('button', { name: /Garantir reserva/ }));
+    await screen.findByRole('radiogroup', { name: 'Forma de pagamento' });
+    const cpf = screen.getByLabelText(/^CPF/);
+    await user.clear(cpf);
+    await user.type(cpf, '71460238001');
+
+    // Sem dados do cartão: não envia e avisa ao lado do botão.
+    await user.click(screen.getByRole('button', { name: /Confirmar e pagar/ }));
+    expect(await screen.findByText(/Confira os campos destacados/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Usar cartão de teste/ }));
+    expect(screen.queryByText(/Confira os campos destacados/)).toBeNull();
+    await user.click(screen.getByRole('button', { name: /Confirmar e pagar/ }));
+    await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/tickets\//), { timeout: 4000 });
+  });
+
   it('mostra a carteira e os pedidos do cliente', async () => {
     const { user } = await openAs('Cliente', '/wallet');
     expect(await screen.findAllByText(/Festival Synthwave/)).not.toHaveLength(0);

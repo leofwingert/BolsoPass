@@ -90,6 +90,31 @@ class BoxOfficeIntegrationTest {
   }
 
   @Test
+  void reservaOnlinePendenteDoClienteNaoBloqueiaAVendaNoBalcao() throws Exception {
+    String op = token(true);
+    String client = token(false);
+    List<String> seats = freeSeats(op, "evt-metal", 2);
+    // A Sarah reservou pelo site e não pagou (a reserva segue ativa por 10 min).
+    call("POST", "/api/v1/reservations", Map.of("eventId", "evt-metal", "seatIds", List.of(seats.get(0))), client, null)
+        .andExpect(status().isCreated());
+    // Online, uma segunda reserva dela no mesmo evento continua barrada.
+    call("POST", "/api/v1/reservations", Map.of("eventId", "evt-metal", "seatIds", List.of(seats.get(1))), client, null)
+        .andExpect(status().isConflict());
+
+    // No balcão, com ela presente, o operador vende normalmente.
+    JsonNode reserved = body(call("POST", BASE + "/events/evt-metal/reservations",
+            Map.of("customerId", "u-sarah", "seatIds", List.of(seats.get(1))), op, null)
+        .andExpect(status().isCreated()));
+    String reservationId = reserved.path("reservation").path("id").asText();
+    call("POST", BASE + "/checkout",
+            Map.of("customerId", "u-sarah",
+                "payment", payment(reservationId, "PIX", seats.get(1), "Sarah Jensen Oliveira", "529.982.247-25", null)),
+            op, UUID.randomUUID().toString())
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("PAGO"));
+  }
+
+  @Test
   void clienteNaoUsaABilheteria() throws Exception {
     call("GET", BASE + "/customers?cpf=529.982.247-25", null, token(false), null).andExpect(status().isForbidden());
   }

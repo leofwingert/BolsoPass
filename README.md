@@ -68,7 +68,7 @@ e abre a área certa. Embaixo do formulário há botões de **acesso rápido** c
 | **Bilheteria** (operador de portaria) | `OP-88219` | `123456` | Leitor de QR (também vende) |
 | **Terminal de venda** (bilheteria) | `VD-20001` | `654321` | Venda no balcão (só vende) |
 
-> Cartão terminado em `0000` simula pagamento recusado. A câmera da bilheteria só funciona em
+> Cartão terminado em `0000` simula pagamento recusado; os demais são aprovados (no checkout, "Usar cartão de teste" preenche um). A câmera da bilheteria só funciona em
 > HTTPS ou em `localhost` (exigência do navegador).
 
 ### 3.2 O que cada tipo de usuário pode fazer

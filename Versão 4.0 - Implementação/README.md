@@ -89,6 +89,7 @@ leia o QR da tela com a câmera (ou copie o código para "Digitar código").
 | Cliente identificado pelo **CPF válido** (com ou sem máscara); o balcão vê nome e telefone, e o e-mail só parcial | RF-02 / LGPD | `BoxOfficeService.find` |
 | CPF sem cadastro: cadastro rápido com nome, sobrenome e telefone com DDD | RF-03 | `BoxOfficeService.register` |
 | No balcão a pessoa está presente: **não passa pela sala de espera virtual** | Regra do balcão | `ReservationService.reserve(..., boxOffice)` |
+| **Reserva online pendente do cliente não bloqueia o balcão** (02/11). O limite de uma reserva aberta por cliente e evento vale só no site; a pendente expira sozinha em 10 min, porque a máquina de estados não permite cancelar um pedido `RESERVADO` | Regra do balcão · doc 06 | `ReservationService.reserve(..., boxOffice)` |
 | Cartão recusado: tentar de novo com nova chave, trocar para PIX ou desistir (lugares voltam à venda) | RF-11 | `OperatorSalePage` |
 | Toda venda no balcão entra no registro de alterações do evento, com a matrícula do operador | RF-03 | `BoxOfficeService.pay` |
 

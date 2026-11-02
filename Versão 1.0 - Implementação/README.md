@@ -56,7 +56,7 @@ Abra `http://localhost:3000`.
 | Organizador / Admin | `admin@bolsopass.io` | `bolsopass` |
 | Operador de portaria | `OP-88219` | `123456` |
 
-Cartão terminado em `0000` simula pagamento recusado.
+Cartão terminado em `0000` simula pagamento recusado; qualquer outro cartão com dados completos é aprovado. O botão **"Usar cartão de teste (aprovado)"** no checkout preenche um cartão válido, e, se faltar algum dado, um aviso ao lado do botão de pagar diz o quê (02/11).
 
 ---
 

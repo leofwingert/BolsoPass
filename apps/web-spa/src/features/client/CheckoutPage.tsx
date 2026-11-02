@@ -128,6 +128,8 @@ export default function CheckoutPage() {
   const [installments, setInstallments] = useState(1);
   const [holderIssues, setHolderIssues] = useState<HolderIssue[]>([]);
   const [cardIssues, setCardIssues] = useState<Record<string, string>>({});
+  // Resumo ao lado do botão: os erros de cada campo podem estar fora da tela.
+  const [formIssue, setFormIssue] = useState<string>();
 
   const maxInstallments = useMemo(() => {
     if (!event || !order) return 1;
@@ -198,7 +200,13 @@ export default function CheckoutPage() {
     const ci = method === 'CREDIT_CARD' ? cardErrors(card) : {};
     setHolderIssues(hi);
     setCardIssues(ci);
-    if (hi.length || Object.keys(ci).length) return;
+    const problems = [...new Set([...hi.map((i) => i.message), ...Object.values(ci)])];
+    setFormIssue(problems.length ? `Confira os campos destacados: ${problems.join(', ').toLowerCase()}.` : undefined);
+    if (problems.length) {
+      // Depois da renderização com os erros: leva a tela até o primeiro campo com problema.
+      requestAnimationFrame(() => document.querySelector('[data-field-error]')?.scrollIntoView?.({ behavior: 'smooth', block: 'center' }));
+      return;
+    }
     pay.mutate();
   }
 
@@ -319,6 +327,19 @@ export default function CheckoutPage() {
 
             {method === 'CREDIT_CARD' ? (
               <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="sm:col-span-3 sm:justify-self-start"
+                  onClick={() => {
+                    setCard({ number: '4111 1111 1111 1111', name: (user?.name ?? 'CLIENTE TESTE').toUpperCase(), expiry: '12/30', cvv: '123' });
+                    setCardIssues({});
+                    setFormIssue(undefined);
+                  }}
+                >
+                  <CreditCard className="size-4" aria-hidden /> Usar cartão de teste (aprovado)
+                </Button>
                 <Field label="Número do cartão" className="sm:col-span-3" error={cardIssues.number} hint="Ambiente de testes: final 0000 simula recusa">
                   <input className={inputClass} inputMode="numeric" autoComplete="cc-number" value={card.number} onChange={(e) => setCard({ ...card, number: maskCard(e.target.value) })} placeholder="0000 0000 0000 0000" />
                 </Field>
@@ -376,6 +397,11 @@ export default function CheckoutPage() {
                 </div>
               </dl>
 
+              {formIssue && (
+                <p role="alert" className="mt-3 rounded-lg bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700">
+                  {formIssue}
+                </p>
+              )}
               {pay.error && (
                 <p role="alert" className="mt-3 rounded-lg bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700">
                   {errorMessage(pay.error)}

@@ -182,7 +182,7 @@ export function Field({
         {hint && <span className="text-xs font-normal text-muted">{hint}</span>}
       </span>
       {children}
-      {error && <span className="mt-1 block text-xs font-medium text-brand-700">{error}</span>}
+      {error && <span data-field-error className="mt-1 block text-xs font-medium text-brand-700">{error}</span>}
     </label>
   );
 }

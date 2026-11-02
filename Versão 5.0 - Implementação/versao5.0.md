@@ -79,6 +79,36 @@ cd backend && SPRING_PROFILES_ACTIVE=postgres ./mvnw spring-boot:run
 # ou tudo junto: docker compose up --build
 ```
 
+**Tudo pelo WSL (Ubuntu + Docker Desktop):**
+
+```bash
+cd /mnt/c/Users/<você>/OneDrive/Documentos/GitHub/BolsoPass
+docker compose up --build -d      # 1ª vez leva alguns minutos
+docker compose ps                 # todos "Up"; postgres, kafka, redis e mailpit "healthy"
+docker compose logs -f backend    # pronto quando aparecer "Started BolsoPassApplication"
+docker compose down               # para tudo (os dados ficam nos volumes; "down -v" apaga)
+```
+
+| O quê | Endereço |
+| :--- | :--- |
+| Aplicação (nginx → backend) | http://localhost:3000 |
+| API direta | http://localhost:8080/api/v1/events |
+| AKHQ (mensagens do Kafka) | http://localhost:8089 |
+| Mailpit (e-mails, a partir do passo 3) | http://localhost:8025 |
+| PostgreSQL (DBeaver etc.) | `localhost:5433`, banco/usuário/senha `bolsopass` |
+
+> Se já houver um `pnpm dev` rodando no Windows, ele ocupa `localhost:3000` antes do Docker, e o
+> navegador abre o Vite em vez do nginx. Pare o `pnpm dev` antes de testar o compose.
+
+Também corrigido: o `nginx.conf` do frontend só repassava `/ws/` (com barra), mas o app conecta em
+`/ws`. Por isso o tempo real (mapa de assentos, status do pedido) não funcionava no Docker.
+
+**Pelo celular (mesma rede Wi-Fi):** abra `http://<IP do PC>:3000` (no Windows, `ipconfig` mostra
+o IP). Para isso o nginx agora repassa `Host` com a porta (`$http_host`); sem ela, o backend via a
+página como outro site e recusava o login com "Invalid CORS request". A câmera da bilheteria exige
+HTTPS fora do `localhost`: no Android, libere o endereço em
+`chrome://flags/#unsafely-treat-insecure-origin-as-secure`.
+
 ---
 
 ## 1. Por que agora
