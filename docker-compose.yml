@@ -1,6 +1,7 @@
 # Infraestrutura local completa do BolsoPass: `docker compose up --build` (RF-17, RNF-08).
 #
 #   Frontend ............ http://localhost:3000
+#   Frontend HTTPS ...... https://<IP do PC>:3443  (celular; aceite o aviso do certificado)
 #   API ................. http://localhost:8080
 #   AKHQ (UI do Kafka) .. http://localhost:8089
 #   Mailpit (e-mails) ... http://localhost:8025
@@ -94,6 +95,9 @@ services:
       DB_USER: bolsopass
       DB_PASSWORD: bolsopass
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      # Confia no X-Forwarded-Proto/Port do nginx: com HTTPS (3443) o backend vê a mesma origem
+      # da página e não recusa o login como "Invalid CORS request".
+      SERVER_FORWARD_HEADERS_STRATEGY: native
     depends_on:
       postgres:
         condition: service_healthy
@@ -106,11 +110,19 @@ services:
     build:
       context: .
       dockerfile: apps/web-spa/Dockerfile
+    environment:
+      # IP do PC na rede (opcional): entra no certificado HTTPS de desenvolvimento.
+      HOST_IP: ${HOST_IP:-}
     depends_on:
       - backend
     ports:
       - "3000:3000"
+      # HTTPS para o celular: a câmera do leitor de QR só abre em HTTPS fora do localhost.
+      - "3443:3443"
+    volumes:
+      - certs:/etc/nginx/certs
 
 volumes:
   pgdata:
   kafkadata:
+  certs:

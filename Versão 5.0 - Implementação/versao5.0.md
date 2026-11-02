@@ -106,8 +106,14 @@ Também corrigido: o `nginx.conf` do frontend só repassava `/ws/` (com barra), 
 **Pelo celular (mesma rede Wi-Fi):** abra `http://<IP do PC>:3000` (no Windows, `ipconfig` mostra
 o IP). Para isso o nginx agora repassa `Host` com a porta (`$http_host`); sem ela, o backend via a
 página como outro site e recusava o login com "Invalid CORS request". A câmera da bilheteria exige
-HTTPS fora do `localhost`: no Android, libere o endereço em
-`chrome://flags/#unsafely-treat-insecure-origin-as-secure`.
+HTTPS fora do `localhost`, por isso o celular usa **`https://<IP do PC>:3443`**:
+
+- o nginx gera um certificado de desenvolvimento na primeira subida (`docker/10-gen-cert.sh`),
+  guardado no volume `certs`;
+- o celular mostra um aviso de segurança uma vez (Avançado → Continuar);
+- com `HOST_IP=<ip> docker compose up -d`, o IP entra no certificado;
+- o backend recebe `SERVER_FORWARD_HEADERS_STRATEGY=native` para enxergar o HTTPS e a porta
+  originais, e não recusar o login.
 
 ---
 
