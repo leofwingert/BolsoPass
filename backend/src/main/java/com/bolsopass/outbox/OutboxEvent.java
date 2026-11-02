@@ -6,7 +6,6 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
@@ -32,8 +31,8 @@ public class OutboxEvent {
   @Column(nullable = false)
   private String eventType;
 
-  @Lob
-  @Column(nullable = false)
+  // text (não @Lob): no PostgreSQL o @Lob de String vira "oid" e só lê dentro de transação.
+  @Column(nullable = false, columnDefinition = "text")
   private String payload;
 
   @Enumerated(EnumType.STRING)
@@ -83,5 +82,9 @@ public class OutboxEvent {
 
   public Status getStatus() {
     return status;
+  }
+
+  public Instant getCreatedAt() {
+    return createdAt;
   }
 }

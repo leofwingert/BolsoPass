@@ -44,6 +44,8 @@ C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bo
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\organizer\OrganizerViews.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\organizer\SeatSalesService.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\outbox\EventPublisher.java
+C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\outbox\EventPublisherConfig.java
+C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\outbox\KafkaEventPublisher.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\outbox\LoggingEventPublisher.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\outbox\OutboxEvent.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\outbox\OutboxRelay.java

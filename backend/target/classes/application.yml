@@ -8,6 +8,19 @@ spring:
     open-in-view: false
     properties:
       hibernate.jdbc.time_zone: UTC
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # acks=all + idempotência: o broker só confirma depois de gravar (doc 03, seção 1).
+      acks: all
+      properties:
+        enable.idempotence: true
+        # Com o Kafka fora, o relay desiste rápido e tenta de novo na próxima rodada.
+        max.block.ms: 3000
+        request.timeout.ms: 3000
+        delivery.timeout.ms: 5000
   jackson:
     default-property-inclusion: non_null
     serialization:
@@ -29,6 +42,11 @@ bolsopass:
     access-ttl: 15m
     refresh-ttl: 7d
   cors-origins: http://localhost:3000
+  kafka:
+    # false = o relay do outbox só escreve no log (perfil dev, sem Docker).
+    enabled: false
+    ack-timeout: 5s
+    replicas: 1
 
 ---
 spring:
@@ -49,10 +67,14 @@ spring:
     activate:
       on-profile: postgres
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/bolsopass}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/bolsopass}
     username: ${DB_USER:bolsopass}
     password: ${DB_PASSWORD:bolsopass}
   jpa:
     hibernate:
       # TODO: trocar por migrações Flyway antes de produção.
       ddl-auto: update
+bolsopass:
+  kafka:
+    # Com o docker-compose o Kafka está de pé; KAFKA_ENABLED=false desliga.
+    enabled: ${KAFKA_ENABLED:true}

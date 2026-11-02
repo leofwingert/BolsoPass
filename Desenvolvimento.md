@@ -58,7 +58,7 @@ do Kafka.
 | Máquina de estados do pedido (Criado, Reservado, Aguardando, Pago, Expirado…) | ✅ | Exatamente a do doc 06; 19 testes cobrindo transições válidas e proibidas |
 | Idempotency-Key no cabeçalho HTTP | ✅ | Mesma chave devolve o mesmo pedido, sem cobrar de novo (24 h) |
 | Transactional Outbox em transação ACID | ✅ | Pedido pago e evento gravados na mesma transação; relay com `SKIP LOCKED` |
-| Publicação segura **no Kafka** | ❌ | O relay só registra o evento no log |
+| Publicação segura **no Kafka** | ✅ | Relay publica no Kafka com `acks=all` e envelope do doc 03; testado com o Kafka pausado (versão 5.0, passo 1) |
 | Simulador de gateway financeiro | ✅ | Aprovação, recusa (cartão final `0000`), nova tentativa e desistência |
 
 ### 2.4 Mensageria e Despacho
@@ -102,11 +102,11 @@ do Kafka.
 | :--- | :---: | :--- |
 | Testes unitários das máquinas de estado | ✅ | Backend: 19 testes da máquina de estados do pedido. Frontend: 46 testes de domínio |
 | Cobertura ≥ 70% | ✅ | **Backend: 91% das linhas** (JaCoCo; `./mvnw verify` falha abaixo de 70%). **Frontend: 90,9% linhas, 80,6% ramos, 78,4% funções** do sistema inteiro (`pnpm coverage` falha abaixo de 70%). Domínio do frontend: 100%. Ramos do backend ainda em 63,5% |
-| Testes de integração com **Testcontainers** (PostgreSQL, Kafka, Redis) | ❌ | Os testes de integração rodam em H2 em memória |
+| Testes de integração com **Testcontainers** (PostgreSQL, Kafka, Redis) | ⚠️ | PostgreSQL e Kafka reais em `ContainersIntegrationTest` (outbox, Kafka fora, zero overselling); Redis entra quando for usado. Os demais testes seguem em H2 |
 | Testes de carga (bônus) | ⚠️ | Só o teste de concorrência com 20 threads; sem k6/Gatling |
 | Processo de GCS documentado | ✅ | Pacote 2, doc 05 |
 | GCS aplicado no repositório | ❌ | Código não commitado; branch `develop` não existe |
-| docker-compose completo (backend, frontend, bancos, Kafka, UI de mensageria) | ❌ | Só PostgreSQL; faltam Dockerfiles |
+| docker-compose completo (backend, frontend, bancos, Kafka, UI de mensageria) | ⚠️ | Backend, frontend, PostgreSQL, Kafka, AKHQ, Redis e Mailpit; faltam Keycloak e os microsserviços (versão 5.0) |
 | CI rodando linters, testes e build a cada PR / merge na `develop` | ❌ | Lint, testes e build existem e passam localmente, mas não há pipeline |
 
 **Números atuais (30/10):** 42 testes no backend (inclui API HTTP, WebSocket real e concorrência) e 72 no frontend (inclui jornadas completas de cliente, admin e bilheteria nas telas reais), lint e checagem de tipos sem erros,
