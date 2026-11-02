@@ -1,6 +1,6 @@
 import { CreditCard, LogIn, ScanLine, ShieldCheck, UserRound } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { errorMessage } from '@/api/errors';
 import type { User } from '@/api/types';
 import { useAuth } from '@/auth/AuthProvider';
@@ -75,6 +75,12 @@ export default function LoginPage() {
             <LogIn className="size-5" aria-hidden /> Entrar
           </Button>
         </form>
+        <p className="mt-4 border-t border-line pt-4 text-center text-sm text-muted">
+          Ainda não tem conta?{' '}
+          <Link to="/auth/register" state={location.state} className="font-bold text-brand-600 hover:underline">
+            Criar conta
+          </Link>
+        </p>
       </Card>
 
       <div>

@@ -54,3 +54,11 @@ export function paymentLabel(method?: 'CREDIT_CARD' | 'PIX' | 'CASH', last4?: st
   if (method === 'CREDIT_CARD') return last4 ? `Cartão final ${last4}` : 'Cartão de crédito';
   return '—';
 }
+
+/** (11) 98765-4321 ou (11) 3456-7890, conforme o usuário digita. */
+export function maskPhone(v: string): string {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  return d.length <= 10
+    ? d.replace(/(\d{2})(\d{0,4})(\d{0,4})/, '($1) $2-$3').replace(/[-\s]+$/, '')
+    : d.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+}

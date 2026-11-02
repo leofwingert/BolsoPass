@@ -88,14 +88,14 @@ public class DataSeeder implements ApplicationRunner {
     users.save(
         new User("u-admin", "Beatriz Lima", "admin@bolsopass.io", pwd, Set.of(Role.ROLE_ORGANIZER, Role.ROLE_ADMIN)));
     users.save(
-        new User("u-operator", "Carlos Silva", "carlos.silva@bolsopass.io", encoder.encode("123456"),
-                Set.of(Role.ROLE_OPERATOR))
-            .withBadge("OP-88219"));
+        new User("u-operator", "Carlos Silva", "carlos.silva@bolsopass.io", pwd, Set.of(Role.ROLE_OPERATOR))
+            .withBadge("OP-88219")
+            .withPin(encoder.encode("123456")));
     // Terminal de venda da bilheteria (maquininha): só vende, não lê QR.
     users.save(
-        new User("u-seller", "Juliana Rocha", "juliana.rocha@bolsopass.io", encoder.encode("654321"),
-                Set.of(Role.ROLE_SELLER))
-            .withBadge("VD-20001"));
+        new User("u-seller", "Juliana Rocha", "juliana.rocha@bolsopass.io", pwd, Set.of(Role.ROLE_SELLER))
+            .withBadge("VD-20001")
+            .withPin(encoder.encode("654321")));
 
     Event synth =
         event("evt-synthwave", "Festival Synthwave 2026", Category.FESTIVAIS, 12, 18, Event.Status.EM_VENDAS)

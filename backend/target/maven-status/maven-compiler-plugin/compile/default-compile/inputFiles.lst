@@ -19,6 +19,8 @@ C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bo
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\iam\Role.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\iam\SecurityConfig.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\iam\User.java
+C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\iam\UserAdminController.java
+C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\iam\UserAdminService.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\iam\UserRepository.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\inventory\Reservation.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\inventory\ReservationController.java

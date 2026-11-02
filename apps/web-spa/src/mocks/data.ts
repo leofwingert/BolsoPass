@@ -12,7 +12,10 @@ const at = (days: number, hour = 21) => {
 export const DEMO_PASSWORD = 'bolsopass';
 export const DEMO_OPERATOR_PIN = '123456';
 
-export const users: (User & { password?: string; pin?: string })[] = [
+/** Usuário do mock: senha/PIN em texto (só demonstração) e dados do cadastro. */
+export type MockUser = User & { password?: string; pin?: string; counterAccount?: boolean; createdAt?: string };
+
+export const users: MockUser[] = [
   {
     id: 'u-sarah',
     name: 'Sarah Jensen Oliveira',

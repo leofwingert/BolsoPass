@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.bolsopass.ClientJourneyIntegrationTest
 -------------------------------------------------------------------------------
-Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.554 s -- in com.bolsopass.ClientJourneyIntegrationTest
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.685 s -- in com.bolsopass.ClientJourneyIntegrationTest

@@ -12,15 +12,10 @@ import { Badge, Button, Card, ErrorState, EventCover, Field, Spinner, inputClass
 import { isValidCpf, maskCpf, redactCpf } from '@/domain/cpf';
 import { validateHolders } from '@/domain/purchaseRules';
 import { isSelectable, type Seat } from '@/domain/seat';
-import { cx, formatDateTime, formatMoney, formatTime } from '@/lib/format';
+import { cx, formatDateTime, formatMoney, formatTime, maskPhone } from '@/lib/format';
 import { useOperator } from './OperatorProvider';
 
 const MAX_SEATS = 6;
-const digits = (v: string) => v.replace(/\D/g, '');
-const maskPhone = (v: string) => {
-  const d = digits(v).slice(0, 11);
-  return d.length <= 10 ? d.replace(/(\d{2})(\d{0,4})(\d{0,4})/, '($1) $2-$3').replace(/[-\s]+$/, '') : d.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
-};
 const newKey = () => crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 
 const STEPS = ['Cliente', 'Lugares', 'Pagamento', 'Concluído'];

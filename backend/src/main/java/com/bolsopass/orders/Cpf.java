@@ -8,6 +8,11 @@ public final class Cpf {
     return value == null ? "" : value.replaceAll("\\D", "");
   }
 
+  /** 52998224725 -> 529.982.247-25 (espera 11 dígitos). */
+  public static String formatted(String digits) {
+    return digits.substring(0, 3) + "." + digits.substring(3, 6) + "." + digits.substring(6, 9) + "-" + digits.substring(9);
+  }
+
   public static boolean isValid(String value) {
     String cpf = digits(value);
     if (cpf.length() != 11 || cpf.chars().distinct().count() == 1) return false;

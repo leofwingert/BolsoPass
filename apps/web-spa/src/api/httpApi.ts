@@ -1,4 +1,5 @@
 import type { BolsoPassApi, EventFilters } from './contract';
+import type { AdminUserFilters } from './types';
 import { http } from './http';
 
 /**
@@ -6,7 +7,7 @@ import { http } from './http';
  * Os caminhos seguem o padrão /api/v1 dos documentos. Ajuste aqui quando o
  * contrato OpenAPI do backend for publicado.
  */
-function query(filters: EventFilters = {}): string {
+function query(filters: EventFilters | AdminUserFilters = {}): string {
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(filters)) if (v) params.set(k, String(v));
   const s = params.toString();
@@ -18,6 +19,7 @@ export const httpApi: BolsoPassApi = {
     login: (email, password) => http('/auth/login', { method: 'POST', body: { email, password } }),
     loginOperator: (badge, pin) =>
       http('/auth/operator/login', { method: 'POST', body: { badge, pin } }),
+    register: (input) => http('/auth/register', { method: 'POST', body: input }),
     refresh: (refreshToken) => http('/auth/refresh', { method: 'POST', body: { refreshToken } }),
     logout: (refreshToken) => http('/auth/logout', { method: 'POST', body: { refreshToken } }),
   },
@@ -43,6 +45,12 @@ export const httpApi: BolsoPassApi = {
     listMine: () => http('/tickets/me'),
     get: (id) => http(`/tickets/${id}`),
     getQr: (id) => http(`/tickets/${id}/qr`),
+  },
+  admin: {
+    listUsers: (filters) => http(`/admin/users${query(filters)}`),
+    createUser: (input) => http('/admin/users', { method: 'POST', body: input }),
+    changeProfile: (userId, profile) =>
+      http(`/admin/users/${userId}/profile`, { method: 'PATCH', body: { profile } }),
   },
   organizer: {
     getDashboard: () => http('/organizer/dashboard'),

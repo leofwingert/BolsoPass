@@ -7,6 +7,8 @@ import { Spinner } from '@/components/ui';
 import { ClientLayout } from '@/layouts/ClientLayout';
 
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
+const RegisterPage = lazy(() => import('@/features/auth/RegisterPage'));
+const UsersPage = lazy(() => import('@/features/organizer/UsersPage'));
 const HomePage = lazy(() => import('@/features/client/HomePage'));
 const EventDetailPage = lazy(() => import('@/features/client/EventDetailPage'));
 const SeatMapPage = lazy(() => import('@/features/client/SeatMapPage'));
@@ -50,6 +52,7 @@ export const routes: RouteObject[] = [
     children: [
       { path: '/', element: page(<HomePage />) },
       { path: '/auth/login', element: page(<LoginPage />) },
+      { path: '/auth/register', element: page(<RegisterPage />) },
       { path: '/events/:id', element: page(<EventDetailPage />) },
       { path: '/events/:id/seats', element: guarded('client', <SeatMapPage />) },
       { path: '/checkout/:reservationId', element: guarded('client', <CheckoutPage />) },
@@ -71,6 +74,8 @@ export const routes: RouteObject[] = [
       { path: 'events', element: page(<OrganizerEventsPage />) },
       { path: 'events/new', element: page(<EventWizardPage />) },
       { path: 'events/:id', element: page(<OrganizerEventPage />) },
+      // Gestão de usuários: só ROLE_ADMIN (o organizador sem admin recebe 403).
+      { path: 'users', element: guarded('admin', <UsersPage />) },
     ],
   },
   // Bilheteria: app de celular. Portaria (ROLE_OPERATOR) lê QR e vende;

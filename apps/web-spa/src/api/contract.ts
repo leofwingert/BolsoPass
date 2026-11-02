@@ -1,4 +1,10 @@
 import type {
+  AdminUserFilters,
+  AdminUserPage,
+  AdminUserResult,
+  NewAdminUser,
+  RegisterInput,
+  UserProfile,
   AssignedEvent,
   BoxOfficeCustomer,
   NewBoxOfficeCustomer,
@@ -38,6 +44,8 @@ export interface BolsoPassApi {
   auth: {
     login(email: string, password: string): Promise<Session>;
     loginOperator(badge: string, pin: string): Promise<Session>;
+    /** Cadastro público: sempre Cliente; já devolve a sessão. */
+    register(input: RegisterInput): Promise<Session>;
     /** Rotação do refresh token (RF-01). */
     refresh(refreshToken: string): Promise<Session>;
     logout(refreshToken?: string): Promise<void>;
@@ -76,6 +84,13 @@ export interface BolsoPassApi {
     resume(id: string): Promise<void>;
     getSectorSeats(eventId: string, sectorId: string): Promise<OrganizerSectorSeats>;
     getSeatSale(eventId: string, seatId: string): Promise<SeatSale>;
+  };
+  /** Gestão de usuários (só ROLE_ADMIN). */
+  admin: {
+    listUsers(filters?: AdminUserFilters): Promise<AdminUserPage>;
+    createUser(input: NewAdminUser): Promise<AdminUserResult>;
+    /** Promove ou rebaixa: troca o perfil (um por conta). */
+    changeProfile(userId: string, profile: UserProfile): Promise<AdminUserResult>;
   };
   operator: {
     listAssignedEvents(): Promise<AssignedEvent[]>;

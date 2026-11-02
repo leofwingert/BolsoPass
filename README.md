@@ -60,6 +60,8 @@ corepack pnpm --filter web-spa dev:mock   # roda sem backend (API simulada)
 
 Abra `http://localhost:3000/auth/login`. Há **um login para todos**: o sistema reconhece o perfil
 e abre a área certa. Embaixo do formulário há botões de **acesso rápido** com as contas de teste.
+Quem não tem conta clica em **Criar conta**: o cadastro público cria sempre um **Cliente**. Admin,
+Bilheteria e Venda só são dados pela administração (página **Usuários**). Cada conta tem um perfil só.
 
 | Perfil | Login | Senha / PIN | Abre em |
 | :--- | :--- | :--- | :--- |
@@ -86,6 +88,7 @@ e abre a área certa. Embaixo do formulário há botões de **acesso rápido** c
 | Tentar de novo ou desistir após pagamento recusado (o assento volta à venda) | ✅ |
 | Receber o ingresso com **QR dinâmico** que muda a cada 15 s (print de tela não funciona) | ✅ |
 | Ver a carteira de ingressos e o histórico de pedidos | ✅ |
+| **Criar conta** pelo login (nome, e-mail, CPF, telefone, senha); quem comprou no balcão usa o mesmo CPF e assume a conta, com os ingressos já comprados | ✅ |
 | Baixar PDF, adicionar à Wallet, transferir ingresso | ⏳ |
 | Pedir reembolso em 7 dias (CDC) | ⏳ precisa de definição de regra |
 
@@ -103,6 +106,9 @@ e abre a área certa. Embaixo do formulário há botões de **acesso rápido** c
 | **Abrir o mapa de um setor e ver para quem vendeu cada assento**: comprador (nome, CPF, e-mail, telefone), titular com CPF e pedido | ✅ |
 | Registro de alterações (auditoria) de cada evento, incluindo quem consultou dados de compradores (LGPD) | ✅ |
 | Organizador vê só os próprios eventos; administrador vê todos | ✅ |
+| **Usuários**: listar todos com busca (nome, e-mail, CPF, matrícula), filtro por perfil e por data de cadastro | ✅ |
+| Cadastrar usuário já com o perfil (Cliente, Admin, Bilheteria ou Venda) | ✅ |
+| **Promover ou rebaixar** um usuário: um perfil por conta; Bilheteria e Venda recebem matrícula e PIN mostrados uma única vez; tudo vai para a auditoria | ✅ |
 | Editar evento publicado, cancelar evento | ⏳ |
 
 #### Bilheteria (operador de portaria) — app para celular

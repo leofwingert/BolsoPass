@@ -15,6 +15,11 @@ import {
   type RealtimeMessage,
 } from '@/api/realtime';
 import type {
+  AdminUser,
+  AdminUserResult,
+  NewAdminUser,
+  StaffCredentials,
+  UserProfile,
   AssignedEvent,
   BoxOfficeCustomer,
   EventDetail,
@@ -37,7 +42,7 @@ import { RESERVATION_TTL_MS } from '@/domain/reservation';
 import { isSelectable, seatTransition, type Seat } from '@/domain/seat';
 import { encodeQr, qrWindow, signedPart, type QrPayload } from '@/domain/ticketQr';
 import { exportPublicKey, generateKeyPair, sign } from '@/lib/ecdsa';
-import { buildSeats, events, gates, holderCpfs, holderNames, users } from './data';
+import { buildSeats, events, gates, holderCpfs, holderNames, users, type MockUser } from './data';
 
 // ---------------------------------------------------------------------------
 // Estado em memória (some ao recarregar a página, exceto a sessão).
@@ -106,8 +111,69 @@ function requireRole(...roles: Role[]): User {
   return user;
 }
 
+/* ---------- Usuários: um perfil por conta (mesmas regras do backend) ---------- */
+
+const PROFILE_ROLES: Record<UserProfile, Role[]> = {
+  CLIENT: ['ROLE_CLIENT'],
+  ADMIN: ['ROLE_ORGANIZER', 'ROLE_ADMIN'],
+  OPERATOR: ['ROLE_OPERATOR'],
+  SELLER: ['ROLE_SELLER'],
+};
+const PROFILE_LABEL: Record<UserProfile, string> = { CLIENT: 'Cliente', ADMIN: 'Admin', OPERATOR: 'Bilheteria', SELLER: 'Venda' };
+const MIN_PASSWORD = 8;
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+function profileOf(u: User): UserProfile {
+  if (u.roles.includes('ROLE_ADMIN') || u.roles.includes('ROLE_ORGANIZER')) return 'ADMIN';
+  if (u.roles.includes('ROLE_OPERATOR')) return 'OPERATOR';
+  if (u.roles.includes('ROLE_SELLER')) return 'SELLER';
+  return 'CLIENT';
+}
+
+/** CPF parcial (LGPD): ***.982.247-** */
+function partialCpf(cpf?: string): string | undefined {
+  const d = normalizeCpf(cpf ?? '');
+  return d.length === 11 ? `***.${d.slice(3, 6)}.${d.slice(6, 9)}-**` : undefined;
+}
+
+function adminUserView(u: MockUser): AdminUser {
+  const profile = profileOf(u);
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    cpf: partialCpf(u.cpf),
+    phone: u.phone,
+    profile,
+    profileLabel: PROFILE_LABEL[profile],
+    badge: u.badge,
+    createdAt: u.createdAt,
+    counterAccount: !!u.counterAccount,
+  };
+}
+
+function staffCredentials(profile: UserProfile): StaffCredentials {
+  const prefix = profile === 'OPERATOR' ? 'OP' : 'VD';
+  let badge: string;
+  do badge = `${prefix}-${10000 + Math.floor(Math.random() * 90000)}`;
+  while (users.some((u) => u.badge === badge));
+  return { badge, pin: String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0') };
+}
+
+function validName(name: string): string {
+  const n = name.trim().replace(/\s+/g, ' ');
+  if (n.split(' ').length < 2) throw new ApiError(400, 'Informe nome e sobrenome');
+  return n;
+}
+
+function validEmail(email: string): string {
+  const e = email.trim().toLowerCase();
+  if (!EMAIL_RE.test(e)) throw new ApiError(400, 'E-mail inválido');
+  return e;
+}
+
 function session(user: User): Session {
-  const { password: _p, pin: _pin, ...safe } = user as User & { password?: string; pin?: string };
+  const { password: _p, pin: _pin, counterAccount: _c, createdAt: _at, ...safe } = user as MockUser;
   return {
     user: safe,
     accessToken: `mock.${btoa(user.id)}`,
@@ -329,6 +395,35 @@ export const mockApi: BolsoPassApi = {
       if (!user || (user as { pin?: string }).pin !== pin) {
         throw new UnauthorizedError('Credencial ou PIN inválidos');
       }
+      return session(user);
+    },
+    async register(input) {
+      await delay();
+      const name = validName(input.name);
+      const email = validEmail(input.email);
+      if (!isValidCpf(input.cpf)) throw new ApiError(400, 'CPF inválido');
+      if (input.phone.replace(/\D/g, '').length < 10) throw new ApiError(400, 'Informe um telefone com DDD');
+      if (input.password.length < MIN_PASSWORD) throw new ApiError(400, `A senha precisa ter pelo menos ${MIN_PASSWORD} caracteres`);
+      if (!input.acceptTerms) throw new ApiError(400, 'Aceite os termos de uso para criar a conta');
+      const owner = users.find((u) => normalizeCpf(u.cpf ?? '') === normalizeCpf(input.cpf));
+      if (users.some((u) => u.email === email && u !== owner)) throw new ConflictError('E-mail já cadastrado');
+      if (owner) {
+        // CPF de conta criada no balcão: o dono assume a conta (e os ingressos comprados lá).
+        if (!owner.counterAccount) throw new ConflictError('CPF já cadastrado. Entre com seu e-mail e senha.');
+        Object.assign(owner, { name, email, password: input.password, phone: input.phone.trim(), counterAccount: false });
+        return session(owner);
+      }
+      const user: MockUser = {
+        id: uid('u'),
+        name,
+        email,
+        roles: ['ROLE_CLIENT'],
+        cpf: maskCpf(input.cpf),
+        phone: input.phone.trim(),
+        password: input.password,
+        createdAt: new Date().toISOString(),
+      };
+      users.push(user);
       return session(user);
     },
     async refresh() {
@@ -817,6 +912,80 @@ export const mockApi: BolsoPassApi = {
     },
   },
 
+  admin: {
+    async listUsers(filters = {}) {
+      await delay();
+      requireRole('ROLE_ADMIN');
+      const q = filters.q?.trim().toLowerCase() ?? '';
+      const digits = normalizeCpf(q);
+      const from = filters.from ? new Date(`${filters.from}T00:00:00`).getTime() : undefined;
+      const to = filters.to ? new Date(`${filters.to}T23:59:59.999`).getTime() : undefined;
+      const all = users
+        .filter((u) => !filters.profile || profileOf(u) === filters.profile)
+        .filter(
+          (u) =>
+            !q ||
+            u.name.toLowerCase().includes(q) ||
+            u.email.includes(q) ||
+            !!u.badge?.toLowerCase().includes(q) ||
+            (digits.length >= 3 && normalizeCpf(u.cpf ?? '').includes(digits)),
+        )
+        .filter((u) => from === undefined || (!!u.createdAt && Date.parse(u.createdAt) >= from))
+        .filter((u) => to === undefined || (!!u.createdAt && Date.parse(u.createdAt) <= to))
+        .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? '') || a.name.localeCompare(b.name));
+      const size = Math.min(Math.max(filters.size ?? 20, 1), 100);
+      const page = Math.max(filters.page ?? 0, 0);
+      return { items: all.slice(page * size, page * size + size).map(adminUserView), total: all.length, page, size };
+    },
+    async createUser(input: NewAdminUser): Promise<AdminUserResult> {
+      await delay();
+      requireRole('ROLE_ADMIN');
+      const name = validName(input.name);
+      const email = validEmail(input.email);
+      if (users.some((u) => u.email === email)) throw new ConflictError('E-mail já cadastrado');
+      const staff = input.profile === 'OPERATOR' || input.profile === 'SELLER';
+      if (input.cpf) {
+        if (!isValidCpf(input.cpf)) throw new ApiError(400, 'CPF inválido');
+        if (users.some((u) => normalizeCpf(u.cpf ?? '') === normalizeCpf(input.cpf!))) throw new ConflictError('CPF já cadastrado');
+      } else if (input.profile === 'CLIENT') {
+        throw new ApiError(400, 'CPF é obrigatório para clientes');
+      }
+      if (!staff && (input.password ?? '').length < MIN_PASSWORD) {
+        throw new ApiError(400, `A senha precisa ter pelo menos ${MIN_PASSWORD} caracteres`);
+      }
+      const credentials = staff ? staffCredentials(input.profile) : undefined;
+      const user: MockUser = {
+        id: uid('u'),
+        name,
+        email,
+        roles: [...PROFILE_ROLES[input.profile]],
+        cpf: input.cpf ? maskCpf(input.cpf) : undefined,
+        phone: input.phone?.trim() || undefined,
+        password: staff ? undefined : input.password,
+        badge: credentials?.badge,
+        pin: credentials?.pin,
+        createdAt: new Date().toISOString(),
+      };
+      users.push(user);
+      return { user: adminUserView(user), credentials };
+    },
+    async changeProfile(userId, profile) {
+      await delay();
+      const me = requireRole('ROLE_ADMIN');
+      const user = users.find((u) => u.id === userId);
+      if (!user) throw new ApiError(404, 'Usuário não encontrado');
+      if (user.id === me.id) throw new ApiError(400, 'Você não pode alterar o próprio perfil');
+      const current = profileOf(user);
+      if (current === profile) throw new ApiError(400, 'O usuário já tem esse perfil');
+      if (current === 'ADMIN' && users.filter((u) => profileOf(u) === 'ADMIN').length <= 1) {
+        throw new ConflictError('O sistema precisa de pelo menos um admin');
+      }
+      const credentials = profile === 'OPERATOR' || profile === 'SELLER' ? staffCredentials(profile) : undefined;
+      Object.assign(user, { roles: [...PROFILE_ROLES[profile]], badge: credentials?.badge, pin: credentials?.pin });
+      return { user: adminUserView(user), credentials };
+    },
+  },
+
   operator: {
     async listAssignedEvents() {
       await delay();
@@ -900,6 +1069,9 @@ export const mockApi: BolsoPassApi = {
           roles: ['ROLE_CLIENT'] as Role[],
           cpf: maskCpf(input.cpf),
           phone: input.phone.trim(),
+          // Sem senha: o dono do CPF pode assumir a conta no cadastro público.
+          counterAccount: true,
+          createdAt: new Date().toISOString(),
         };
         users.push(u);
         return customerView(u, true);

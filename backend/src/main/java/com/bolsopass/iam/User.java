@@ -10,6 +10,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -40,6 +41,17 @@ public class User {
   @Column(name = "role")
   private Set<Role> roles = EnumSet.noneOf(Role.class);
 
+  /** PIN da bilheteria (matrícula + PIN), separado da senha do e-mail. Nulo = conta sem acesso à bilheteria. */
+  private String pinHash;
+
+  /**
+   * Conta criada no balcão da bilheteria, sem senha conhecida: no cadastro público o dono do CPF
+   * pode assumi-la. Colunas novas ficam opcionais para não quebrar tabelas que já existem.
+   */
+  private Boolean counterAccount;
+
+  private Instant createdAt;
+
   protected User() {}
 
   public User(String id, String name, String email, String passwordHash, Set<Role> roles) {
@@ -48,6 +60,7 @@ public class User {
     this.email = email.toLowerCase();
     this.passwordHash = passwordHash;
     this.roles = EnumSet.copyOf(roles);
+    this.createdAt = Instant.now();
   }
 
   public User withContact(String cpf, String phone) {
@@ -59,6 +72,33 @@ public class User {
   public User withBadge(String badge) {
     this.badge = badge;
     return this;
+  }
+
+  public User withPin(String pinHash) {
+    this.pinHash = pinHash;
+    return this;
+  }
+
+  public User markCounterAccount() {
+    this.counterAccount = true;
+    return this;
+  }
+
+  /** O dono do CPF assume a conta criada no balcão: define e-mail, senha e telefone. */
+  public void claim(String name, String email, String passwordHash, String phone) {
+    this.name = name;
+    this.email = email.toLowerCase();
+    this.passwordHash = passwordHash;
+    this.phone = phone;
+    this.counterAccount = false;
+  }
+
+  /** Troca o perfil: a conta tem um perfil só. Sem bilheteria, perde matrícula e PIN. */
+  public void changeRoles(Set<Role> roles, String badge, String pinHash) {
+    this.roles.clear();
+    this.roles.addAll(roles);
+    this.badge = badge;
+    this.pinHash = pinHash;
   }
 
   public String getId() {
@@ -91,5 +131,22 @@ public class User {
 
   public Set<Role> getRoles() {
     return roles;
+  }
+
+  public String getPinHash() {
+    return pinHash;
+  }
+
+  /** E-mail automático das contas criadas no balcão sem e-mail informado. */
+  public static final String COUNTER_EMAIL_DOMAIN = "@balcao.bolsopass.io";
+
+  public boolean isCounterAccount() {
+    // Contas do balcão criadas antes da coluna existir ficaram com null: o e-mail automático as identifica.
+    return Boolean.TRUE.equals(counterAccount)
+        || (counterAccount == null && email != null && email.endsWith(COUNTER_EMAIL_DOMAIN));
+  }
+
+  public Instant getCreatedAt() {
+    return createdAt;
   }
 }

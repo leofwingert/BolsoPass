@@ -1,4 +1,4 @@
-import { Bell, CalendarPlus, ExternalLink, LayoutDashboard, ListChecks } from 'lucide-react';
+import { Bell, CalendarPlus, ExternalLink, LayoutDashboard, ListChecks, Users } from 'lucide-react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthProvider';
 import { hasAnyRole } from '@/auth/roles';
@@ -31,6 +31,11 @@ export default function OrganizerLayout() {
       <NavLink to="/organizer/events/new" className={navClass}>
         <CalendarPlus className="size-4" aria-hidden /> Criar evento
       </NavLink>
+      {isAdmin && (
+        <NavLink to="/organizer/users" className={navClass}>
+          <Users className="size-4" aria-hidden /> Usuários
+        </NavLink>
+      )}
     </>
   );
 

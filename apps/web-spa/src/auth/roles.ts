@@ -19,6 +19,8 @@ export const AREA_ROLES = {
   organizer: ['ROLE_ORGANIZER', 'ROLE_ADMIN'],
   boxOffice: ['ROLE_OPERATOR', 'ROLE_SELLER'],
   operator: ['ROLE_OPERATOR'],
+  /** Gestão de usuários (cadastrar, promover, rebaixar): só o admin da plataforma. */
+  admin: ['ROLE_ADMIN'],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Area = keyof typeof AREA_ROLES;

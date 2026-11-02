@@ -194,7 +194,15 @@ public class ReservationService {
         });
   }
 
+  /**
+   * Código do pedido único (o id do ingresso usa os mesmos 5 dígitos: TK-12345-A15).
+   * Sorteio entre 90 mil números: confere antes para não repetir quando o banco cresce.
+   */
   private String newCode() {
-    return "PLS-" + (10_000 + random.nextInt(89_999)) + "-BR";
+    String code;
+    do {
+      code = "PLS-" + (10_000 + random.nextInt(90_000)) + "-BR";
+    } while (orders.existsByCode(code));
+    return code;
   }
 }

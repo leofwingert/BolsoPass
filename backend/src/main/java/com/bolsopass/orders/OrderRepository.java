@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
 public interface OrderRepository extends JpaRepository<Order, String> {
+  boolean existsByCode(String code);
+
   /** Trava a linha do pedido: pagamento e expiração nunca rodam ao mesmo tempo. */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select o from Order o where o.id = :id")

@@ -11,7 +11,7 @@ import {
 } from 'react';
 import { api } from '@/api';
 import { onUnauthorized, refreshAccessToken, setAccessToken, setRefresher } from '@/api/session';
-import type { Session, User } from '@/api/types';
+import type { Session, User, RegisterInput } from '@/api/types';
 import { storage } from '@/lib/storage';
 
 interface AuthContextValue {
@@ -19,6 +19,8 @@ interface AuthContextValue {
   session?: Session;
   login(email: string, password: string): Promise<User>;
   loginOperator(badge: string, pin: string): Promise<User>;
+  /** Cadastro público (sempre Cliente): já entra logado. */
+  register(input: RegisterInput): Promise<User>;
   logout(): Promise<void>;
 }
 
@@ -88,6 +90,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       async loginOperator(badge, pin) {
         const s = await api.auth.loginOperator(badge, pin);
+        apply(s);
+        return s.user;
+      },
+      async register(input) {
+        const s = await api.auth.register(input);
         apply(s);
         return s.user;
       },

@@ -4,7 +4,9 @@ import com.bolsopass.iam.AuthService.SessionDto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,6 +31,13 @@ public class AuthController {
   @PostMapping("/login")
   SessionDto login(@Valid @RequestBody LoginRequest req) {
     return auth.login(req.email(), req.password());
+  }
+
+  /** Cadastro público: sempre cria um Cliente e já entra logado. */
+  @PostMapping("/register")
+  @ResponseStatus(HttpStatus.CREATED)
+  SessionDto register(@RequestBody AuthService.RegisterRequest req) {
+    return auth.register(req);
   }
 
   @PostMapping("/operator/login")

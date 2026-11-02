@@ -390,3 +390,70 @@ export interface NewBoxOfficeCustomer {
   phone: string;
   email?: string;
 }
+
+/* ---------- Cadastro e gestão de usuários (RF-02, RF-03) ---------- */
+
+/** Cadastro público: sempre cria um Cliente. */
+export interface RegisterInput {
+  name: string;
+  email: string;
+  cpf: string;
+  phone: string;
+  password: string;
+  acceptTerms: boolean;
+}
+
+/** Um perfil por conta (a administração troca o perfil ao promover). */
+export type UserProfile = 'CLIENT' | 'ADMIN' | 'OPERATOR' | 'SELLER';
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  /** CPF parcial (***.982.247-**). */
+  cpf?: string;
+  phone?: string;
+  profile: UserProfile;
+  profileLabel: string;
+  badge?: string;
+  createdAt?: string;
+  /** Criada no balcão da bilheteria, ainda sem senha definida pelo dono. */
+  counterAccount: boolean;
+}
+
+export interface AdminUserFilters {
+  q?: string;
+  profile?: UserProfile;
+  from?: string;
+  to?: string;
+  page?: number;
+  size?: number;
+}
+
+export interface AdminUserPage {
+  items: AdminUser[];
+  total: number;
+  page: number;
+  size: number;
+}
+
+export interface NewAdminUser {
+  name: string;
+  email: string;
+  cpf?: string;
+  phone?: string;
+  /** Cliente e Admin entram com e-mail e senha; Bilheteria e Venda recebem matrícula e PIN. */
+  password?: string;
+  profile: UserProfile;
+}
+
+/** Matrícula e PIN gerados: aparecem uma única vez. */
+export interface StaffCredentials {
+  badge: string;
+  pin: string;
+}
+
+export interface AdminUserResult {
+  user: AdminUser;
+  credentials?: StaffCredentials;
+}

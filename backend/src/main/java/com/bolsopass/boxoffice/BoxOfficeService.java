@@ -87,6 +87,11 @@ public class BoxOfficeService {
   @Transactional
   public Customer register(NewCustomer in) {
     if (byCpf(in.cpf()) != null) throw ApiException.conflict("Já existe cliente com este CPF");
+    // Um CPF, uma conta: CPF de alguém da equipe (conta promovida) não vira um segundo cadastro.
+    String cpfDigits = Cpf.digits(in.cpf());
+    if (!users.findByCpfIn(List.of(cpfDigits, formatted(cpfDigits))).isEmpty()) {
+      throw ApiException.conflict("Este CPF pertence a uma conta da equipe e não pode comprar como cliente");
+    }
     if (in.name() == null || in.name().trim().split("\\s+").length < 2) {
       throw ApiException.badRequest("Informe nome e sobrenome");
     }
@@ -100,7 +105,8 @@ public class BoxOfficeService {
     if (users.findByEmail(email).isPresent()) throw ApiException.conflict("E-mail já cadastrado");
     User u = users.save(new User("u-" + UUID.randomUUID(), in.name().trim(), email,
             encoder.encode(UUID.randomUUID().toString()), Set.of(Role.ROLE_CLIENT))
-        .withContact(formatted(digits), in.phone().trim()));
+        .withContact(formatted(digits), in.phone().trim())
+        .markCounterAccount());
     return view(u, true);
   }
 
