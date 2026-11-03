@@ -382,6 +382,10 @@ export interface BoxOfficeCustomer {
   /** Parcial (LGPD): an***@exemplo.com */
   email?: string;
   newCustomer: boolean;
+  /** Código de 6 dígitos para o cliente ativar a conta no site. Só vem logo depois de gerado. */
+  activationCode?: string;
+  /** Conta criada no balcão e ainda não ativada pelo dono no site. */
+  pendingActivation?: boolean;
 }
 
 export interface NewBoxOfficeCustomer {

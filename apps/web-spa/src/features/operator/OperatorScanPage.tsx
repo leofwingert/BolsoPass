@@ -1,6 +1,7 @@
-import { History, Keyboard, QrCode, ShieldCheck, Ticket, WifiOff, X } from 'lucide-react';
+import { History, Keyboard, QrCode, ShieldCheck, Ticket, WifiOff } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, Navigate } from 'react-router-dom';
+import { Modal } from '@/components/Modal';
 import { Badge, Button, Card, Progress } from '@/components/ui';
 import { cx, formatNumber, formatTime, pct } from '@/lib/format';
 import { maskCpf, useOperator, type ScanResult } from './OperatorProvider';
@@ -156,18 +157,14 @@ export default function OperatorScanPage() {
       <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted"><ShieldCheck className="size-3.5" aria-hidden /> QR dinâmico conferido pela assinatura digital, mesmo sem internet.</p>
 
       {manual && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-navy/50 p-4 sm:items-center" onClick={() => setManual(false)}>
-          <form onSubmit={submitManual} onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" role="dialog" aria-label="Digitar código">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold">Digitar código do ingresso</h2>
-              <button type="button" onClick={() => setManual(false)} className="rounded-lg p-1.5 hover:bg-surface" aria-label="Fechar"><X className="size-5" /></button>
-            </div>
-            <p className="mt-1 text-xs text-muted">Cole ou digite o conteúdo do QR (começa com <span className="font-mono">BP1.</span>). O código muda a cada 15 s no celular do cliente.</p>
+        <Modal title="Digitar código do ingresso" label="Digitar código" onClose={() => setManual(false)} className="max-w-md">
+          <form onSubmit={submitManual}>
+            <p className="text-xs text-muted">Cole ou digite o conteúdo do QR (começa com <span className="font-mono">BP1.</span>). O código muda a cada 15 s no celular do cliente.</p>
             <textarea value={code} onChange={(e) => setCode(e.target.value)} rows={4} autoFocus aria-label="Código do QR"
               className="mt-3 w-full rounded-lg bg-surface p-3 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="BP1.eyJ0aWQiOi…" />
             <Button type="submit" size="lg" className="mt-3 w-full" disabled={!code.trim()}>Validar</Button>
           </form>
-        </div>
+        </Modal>
       )}
     </div>
   );

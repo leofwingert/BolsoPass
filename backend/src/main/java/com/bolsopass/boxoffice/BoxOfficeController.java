@@ -48,6 +48,12 @@ public class BoxOfficeController {
     return service.register(in);
   }
 
+  /** Novo código de ativação (vencido, perdido ou conta antiga sem código). */
+  @PostMapping("/customers/{customerId}/activation-code")
+  BoxOfficeService.Customer activationCode(@PathVariable String customerId) {
+    return service.issueActivationCode(customerId);
+  }
+
   /** Mapa de assentos do evento (lugares vagos para vender). */
   @GetMapping("/events/{eventId}/seats")
   SeatMapView seats(@PathVariable String eventId) {

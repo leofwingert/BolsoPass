@@ -1,1 +1,10 @@
+com\bolsopass\ApiIntegrationTest.class
+com\bolsopass\BoxOfficeIntegrationTest.class
 com\bolsopass\OrganizerIntegrationTest.class
+com\bolsopass\RealtimeIntegrationTest$1.class
+com\bolsopass\RealtimeIntegrationTest.class
+com\bolsopass\ReservationExpiryIntegrationTest.class
+com\bolsopass\UserAdminIntegrationTest.class
+com\bolsopass\orders\OrderStatusTest.class
+com\bolsopass\ContainersIntegrationTest.class
+com\bolsopass\ClientJourneyIntegrationTest.class

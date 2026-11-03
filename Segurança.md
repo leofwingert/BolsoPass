@@ -35,3 +35,11 @@ conta e acessar ingressos, pedidos e demais dados associados.
 enviado a telefone/e-mail verificado ou código de ativação entregue pelo
 operador. A sessão não deve ser emitida antes da conclusão dessa verificação.
 
+## Remediação aplicada
+
+- O balcão agora gera um código de ativação aleatório de uso único, válido por
+  24 horas.
+- O banco armazena somente o hash do código e sua expiração.
+- O cadastro público exige o código correto antes de assumir uma conta do
+  balcão; CPF sem o código resulta em conflito.
+- O frontend permite informar o código recebido no balcão.

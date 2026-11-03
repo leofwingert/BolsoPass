@@ -13,7 +13,15 @@ export const DEMO_PASSWORD = 'bolsopass';
 export const DEMO_OPERATOR_PIN = '123456';
 
 /** Usuário do mock: senha/PIN em texto (só demonstração) e dados do cadastro. */
-export type MockUser = User & { password?: string; pin?: string; counterAccount?: boolean; createdAt?: string };
+export type MockUser = User & {
+  password?: string;
+  pin?: string;
+  counterAccount?: boolean;
+  createdAt?: string;
+  /** Código de ativação da conta do balcão e quando vence (ms). */
+  activationCode?: string;
+  activationExpiresAt?: number;
+};
 
 export const users: MockUser[] = [
   {

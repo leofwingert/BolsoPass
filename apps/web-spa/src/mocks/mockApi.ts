@@ -34,7 +34,8 @@ import type {
   Ticket,
   User,
 } from '@/api/types';
-import { isValidCpf, maskCpf, normalizeCpf } from '@/domain/cpf';
+import { ACCOUNT_MESSAGES, isEmail, isFullName, isPhoneWithDdd, isStrongEnoughPassword } from '@/domain/account';
+import { isValidCpf, maskCpf, normalizeCpf, redactCpf } from '@/domain/cpf';
 import { canSubmitPayment, transition } from '@/domain/order';
 import { computeTotals } from '@/domain/pricing';
 import { validateHolders } from '@/domain/purchaseRules';
@@ -91,9 +92,27 @@ function clientById(id: string): User {
   return u;
 }
 
-function customerView(u: User, newCustomer: boolean): BoxOfficeCustomer {
+function customerView(u: MockUser, newCustomer: boolean, activationCode?: string): BoxOfficeCustomer {
   const [local = '', domain = ''] = u.email.split('@');
-  return { id: u.id, name: u.name, phone: u.phone, cpf: normalizeCpf(u.cpf ?? ''), email: `${local.slice(0, 2)}***@${domain}`, newCustomer };
+  return {
+    id: u.id,
+    name: u.name,
+    phone: u.phone,
+    cpf: normalizeCpf(u.cpf ?? ''),
+    email: `${local.slice(0, 2)}***@${domain}`,
+    newCustomer,
+    activationCode,
+    pendingActivation: !!u.counterAccount,
+  };
+}
+
+const ACTIVATION_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** Novo código de 6 dígitos para a conta do balcão (o anterior deixa de valer). */
+function newActivationCode(u: MockUser): string {
+  const code = String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0');
+  Object.assign(u, { counterAccount: true, activationCode: code, activationExpiresAt: Date.now() + ACTIVATION_TTL_MS });
+  return code;
 }
 
 function currentUser(): User {
@@ -120,8 +139,6 @@ const PROFILE_ROLES: Record<UserProfile, Role[]> = {
   SELLER: ['ROLE_SELLER'],
 };
 const PROFILE_LABEL: Record<UserProfile, string> = { CLIENT: 'Cliente', ADMIN: 'Admin', OPERATOR: 'Bilheteria', SELLER: 'Venda' };
-const MIN_PASSWORD = 8;
-const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 function profileOf(u: User): UserProfile {
   if (u.roles.includes('ROLE_ADMIN') || u.roles.includes('ROLE_ORGANIZER')) return 'ADMIN';
@@ -130,19 +147,13 @@ function profileOf(u: User): UserProfile {
   return 'CLIENT';
 }
 
-/** CPF parcial (LGPD): ***.982.247-** */
-function partialCpf(cpf?: string): string | undefined {
-  const d = normalizeCpf(cpf ?? '');
-  return d.length === 11 ? `***.${d.slice(3, 6)}.${d.slice(6, 9)}-**` : undefined;
-}
-
 function adminUserView(u: MockUser): AdminUser {
   const profile = profileOf(u);
   return {
     id: u.id,
     name: u.name,
     email: u.email,
-    cpf: partialCpf(u.cpf),
+    cpf: u.cpf ? redactCpf(u.cpf) : undefined,
     phone: u.phone,
     profile,
     profileLabel: PROFILE_LABEL[profile],
@@ -160,16 +171,25 @@ function staffCredentials(profile: UserProfile): StaffCredentials {
   return { badge, pin: String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0') };
 }
 
+/* Validações de cadastro: mesmas regras e mensagens do backend (domain/account). */
 function validName(name: string): string {
-  const n = name.trim().replace(/\s+/g, ' ');
-  if (n.split(' ').length < 2) throw new ApiError(400, 'Informe nome e sobrenome');
-  return n;
+  if (!isFullName(name)) throw new ApiError(400, ACCOUNT_MESSAGES.name);
+  return name.trim().replace(/\s+/g, ' ');
+}
+
+function validPhone(phone: string): string {
+  if (!isPhoneWithDdd(phone)) throw new ApiError(400, ACCOUNT_MESSAGES.phone);
+  return phone.trim();
+}
+
+function validPassword(password = ''): string {
+  if (!isStrongEnoughPassword(password)) throw new ApiError(400, ACCOUNT_MESSAGES.password);
+  return password;
 }
 
 function validEmail(email: string): string {
-  const e = email.trim().toLowerCase();
-  if (!EMAIL_RE.test(e)) throw new ApiError(400, 'E-mail inválido');
-  return e;
+  if (!isEmail(email)) throw new ApiError(400, ACCOUNT_MESSAGES.email);
+  return email.trim().toLowerCase();
 }
 
 function session(user: User): Session {
@@ -402,15 +422,18 @@ export const mockApi: BolsoPassApi = {
       const name = validName(input.name);
       const email = validEmail(input.email);
       if (!isValidCpf(input.cpf)) throw new ApiError(400, 'CPF inválido');
-      if (input.phone.replace(/\D/g, '').length < 10) throw new ApiError(400, 'Informe um telefone com DDD');
-      if (input.password.length < MIN_PASSWORD) throw new ApiError(400, `A senha precisa ter pelo menos ${MIN_PASSWORD} caracteres`);
+      const phone = validPhone(input.phone);
+      const password = validPassword(input.password);
       if (!input.acceptTerms) throw new ApiError(400, 'Aceite os termos de uso para criar a conta');
       const owner = users.find((u) => normalizeCpf(u.cpf ?? '') === normalizeCpf(input.cpf));
       if (users.some((u) => u.email === email && u !== owner)) throw new ConflictError('E-mail já cadastrado');
       if (owner) {
         // CPF de conta criada no balcão: o dono assume a conta (e os ingressos comprados lá).
         if (!owner.counterAccount) throw new ConflictError('CPF já cadastrado. Entre com seu e-mail e senha.');
-        Object.assign(owner, { name, email, password: input.password, phone: input.phone.trim(), counterAccount: false });
+        // Só o CPF não basta: precisa do código entregue no balcão (válido por 24 h).
+        const valid = !!input.activationCode && input.activationCode === owner.activationCode && (owner.activationExpiresAt ?? 0) > Date.now();
+        if (!valid) throw new ConflictError('Informe o código de ativação entregue no balcão');
+        Object.assign(owner, { name, email, password, phone, counterAccount: false, activationCode: undefined, activationExpiresAt: undefined });
         return session(owner);
       }
       const user: MockUser = {
@@ -419,8 +442,8 @@ export const mockApi: BolsoPassApi = {
         email,
         roles: ['ROLE_CLIENT'],
         cpf: maskCpf(input.cpf),
-        phone: input.phone.trim(),
-        password: input.password,
+        phone,
+        password,
         createdAt: new Date().toISOString(),
       };
       users.push(user);
@@ -950,9 +973,7 @@ export const mockApi: BolsoPassApi = {
       } else if (input.profile === 'CLIENT') {
         throw new ApiError(400, 'CPF é obrigatório para clientes');
       }
-      if (!staff && (input.password ?? '').length < MIN_PASSWORD) {
-        throw new ApiError(400, `A senha precisa ter pelo menos ${MIN_PASSWORD} caracteres`);
-      }
+      if (!staff) validPassword(input.password);
       const credentials = staff ? staffCredentials(input.profile) : undefined;
       const user: MockUser = {
         id: uid('u'),
@@ -1059,22 +1080,32 @@ export const mockApi: BolsoPassApi = {
         await delay();
         requireRole('ROLE_OPERATOR', 'ROLE_SELLER');
         if (!isValidCpf(input.cpf)) throw new ApiError(400, 'CPF inválido');
-        if (users.some((x) => normalizeCpf(x.cpf ?? '') === normalizeCpf(input.cpf))) throw new ConflictError('Já existe cliente com este CPF');
-        if (input.name.trim().split(/\s+/).length < 2) throw new ApiError(400, 'Informe nome e sobrenome');
-        if (input.phone.replace(/\D/g, '').length < 10) throw new ApiError(400, 'Informe um telefone com DDD');
-        const u = {
+        const existing = users.find((x) => normalizeCpf(x.cpf ?? '') === normalizeCpf(input.cpf));
+        if (existing) {
+          throw new ConflictError(existing.roles.includes('ROLE_CLIENT') ? 'Já existe cliente com este CPF' : 'Este CPF pertence a uma conta da equipe e não pode comprar como cliente');
+        }
+        const u: MockUser = {
           id: uid('u'),
-          name: input.name.trim(),
-          email: input.email?.includes('@') ? input.email.trim().toLowerCase() : `cpf${normalizeCpf(input.cpf)}@balcao.bolsopass.io`,
-          roles: ['ROLE_CLIENT'] as Role[],
+          name: validName(input.name),
+          email: input.email?.trim() ? validEmail(input.email) : `cpf${normalizeCpf(input.cpf)}@balcao.bolsopass.io`,
+          roles: ['ROLE_CLIENT'],
           cpf: maskCpf(input.cpf),
-          phone: input.phone.trim(),
-          // Sem senha: o dono do CPF pode assumir a conta no cadastro público.
-          counterAccount: true,
+          phone: validPhone(input.phone),
           createdAt: new Date().toISOString(),
         };
+        if (users.some((x) => x.email === u.email)) throw new ConflictError('E-mail já cadastrado');
+        // Sem senha: o dono do CPF assume a conta no site com o código de ativação.
+        const code = newActivationCode(u);
         users.push(u);
-        return customerView(u, true);
+        return customerView(u, true, code);
+      },
+      async issueActivationCode(customerId) {
+        await delay();
+        requireRole('ROLE_OPERATOR', 'ROLE_SELLER');
+        const u = users.find((x) => x.id === customerId && x.roles.includes('ROLE_CLIENT'));
+        if (!u) throw new ApiError(404, 'Cliente não encontrado');
+        if (!u.counterAccount) throw new ConflictError('Esta conta já foi ativada pelo cliente');
+        return customerView(u, false, newActivationCode(u));
       },
       async getSeatMap(eventId) {
         requireRole('ROLE_OPERATOR', 'ROLE_SELLER');

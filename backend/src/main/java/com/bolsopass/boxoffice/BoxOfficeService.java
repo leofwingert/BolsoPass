@@ -3,6 +3,7 @@ package com.bolsopass.boxoffice;
 import com.bolsopass.audit.AuditLog;
 import com.bolsopass.audit.AuditService;
 import com.bolsopass.catalog.CatalogService;
+import com.bolsopass.iam.AccountRules;
 import com.bolsopass.iam.CurrentUser;
 import com.bolsopass.iam.Role;
 import com.bolsopass.iam.User;
@@ -34,7 +35,7 @@ public class BoxOfficeService {
   /** Dados do cliente que o operador vê no balcão. */
   public record Customer(
       String id, String name, String phone, String cpf, String email, boolean newCustomer,
-      String activationCode) {}
+      String activationCode, boolean pendingActivation) {}
 
   public record NewCustomer(String cpf, String name, String phone, String email) {}
 
@@ -57,14 +58,24 @@ public class BoxOfficeService {
     this.encoder = encoder;
   }
 
-  private static String formatted(String digits) {
-    return digits.substring(0, 3) + "." + digits.substring(3, 6) + "." + digits.substring(6, 9) + "-" + digits.substring(9);
-  }
+  /** Código de ativação: entregue no balcão, vale 24 h e só ele permite assumir a conta no site. */
+  static final Duration ACTIVATION_TTL = Duration.ofHours(24);
 
+  /**
+   * {@code activationCode} só vem preenchido logo após gerá-lo (o banco guarda apenas o hash).
+   * {@code pendingActivation}: a conta ainda não foi assumida pelo dono no site.
+   */
   private static Customer view(User u, boolean created, String activationCode) {
     return new Customer(
         u.getId(), u.getName(), u.getPhone(), Cpf.digits(u.getCpf()), maskEmail(u.getEmail()), created,
-        activationCode);
+        activationCode, u.isCounterAccount());
+  }
+
+  /** Gera um código novo de 6 dígitos para a conta do balcão (o anterior deixa de valer). */
+  private String newActivationCode(User u) {
+    String code = "%06d".formatted(random.nextInt(1_000_000));
+    u.markCounterAccount(encoder.encode(code), Instant.now().plus(ACTIVATION_TTL));
+    return code;
   }
 
   /** E-mail parcial no balcão (LGPD): an***@exemplo.com */
@@ -74,49 +85,61 @@ public class BoxOfficeService {
     return p[0].substring(0, Math.min(2, p[0].length())) + "***@" + p[1];
   }
 
+  /** Conta do CPF (cliente ou equipe). CPF inválido = 400. */
   private User byCpf(String cpf) {
     if (!Cpf.isValid(cpf)) throw ApiException.badRequest("CPF inválido");
-    String digits = Cpf.digits(cpf);
-    return users.findByCpfIn(List.of(digits, formatted(digits))).stream()
-        .filter(u -> u.getRoles().contains(Role.ROLE_CLIENT))
-        .findFirst()
-        .orElse(null);
+    return users.findByCpf(cpf).orElse(null);
   }
 
   /** Busca o cliente pelo CPF e devolve nome e telefone para confirmar com a pessoa no balcão. */
   @Transactional(readOnly = true)
   public Customer find(String cpf) {
     User u = byCpf(cpf);
-    if (u == null) throw ApiException.notFound("Cliente com este CPF");
-    return view(u, false);
+    if (u == null || !u.getRoles().contains(Role.ROLE_CLIENT)) throw ApiException.notFound("Cliente com este CPF");
+    return view(u, false, null);
   }
 
   /** Cadastro rápido de quem ainda não tem conta (o ingresso fica na carteira desse CPF). */
   @Transactional
   public Customer register(NewCustomer in) {
-    if (byCpf(in.cpf()) != null) throw ApiException.conflict("Já existe cliente com este CPF");
-    // Um CPF, uma conta: CPF de alguém da equipe (conta promovida) não vira um segundo cadastro.
-    String cpfDigits = Cpf.digits(in.cpf());
-    if (!users.findByCpfIn(List.of(cpfDigits, formatted(cpfDigits))).isEmpty()) {
-      throw ApiException.conflict("Este CPF pertence a uma conta da equipe e não pode comprar como cliente");
+    User existing = byCpf(in.cpf());
+    if (existing != null) {
+      // Um CPF, uma conta: CPF de alguém da equipe (conta promovida) não vira um segundo cadastro.
+      throw ApiException.conflict(existing.getRoles().contains(Role.ROLE_CLIENT)
+          ? "Já existe cliente com este CPF"
+          : "Este CPF pertence a uma conta da equipe e não pode comprar como cliente");
     }
-    if (in.name() == null || in.name().trim().split("\\s+").length < 2) {
-      throw ApiException.badRequest("Informe nome e sobrenome");
-    }
-    if (in.phone() == null || in.phone().replaceAll("\\D", "").length() < 10) {
-      throw ApiException.badRequest("Informe um telefone com DDD");
-    }
+    String name = AccountRules.fullName(in.name());
+    String phone = AccountRules.phone(in.phone());
     String digits = Cpf.digits(in.cpf());
-    String email = in.email() != null && in.email().contains("@")
-        ? in.email().trim().toLowerCase()
-        : "cpf" + digits + "@balcao.bolsopass.io";
+    String email = in.email() != null && !in.email().isBlank()
+        ? AccountRules.email(in.email())
+        : "cpf" + digits + User.COUNTER_EMAIL_DOMAIN;
     if (users.findByEmail(email).isPresent()) throw ApiException.conflict("E-mail já cadastrado");
-    String activationCode = "%06d".formatted(random.nextInt(1_000_000));
-    User u = users.save(new User("u-" + UUID.randomUUID(), in.name().trim(), email,
-            encoder.encode(UUID.randomUUID().toString()), Set.of(Role.ROLE_CLIENT))
-        .withContact(formatted(digits), in.phone().trim())
-        .markCounterAccount(encoder.encode(activationCode), Instant.now().plus(Duration.ofHours(24))));
-    return view(u, true, activationCode);
+    User u = new User("u-" + UUID.randomUUID(), name, email, encoder.encode(UUID.randomUUID().toString()),
+            Set.of(Role.ROLE_CLIENT))
+        .withContact(Cpf.formatted(digits), phone);
+    String code = newActivationCode(u);
+    users.save(u);
+    return view(u, true, code);
+  }
+
+  /**
+   * Novo código de ativação para quem ainda não assumiu a conta (código vencido, perdido ou conta
+   * criada antes de existir o código). O anterior deixa de valer.
+   */
+  @Transactional
+  public Customer issueActivationCode(String customerId) {
+    User u = customer(customerId);
+    if (!u.isCounterAccount()) throw ApiException.conflict("Esta conta já foi ativada pelo cliente");
+    String code = newActivationCode(u);
+    audit.log(null, AuditLog.Kind.SEGURANCA, "Código de ativação gerado",
+        "Novo código para a conta do CPF " + Cpf.mask(u.getCpf()) + ", gerado na bilheteria.", operatorBadge());
+    return view(u, false, code);
+  }
+
+  private String operatorBadge() {
+    return users.findById(CurrentUser.id()).map(u -> u.getBadge() != null ? u.getBadge() : u.getEmail()).orElse(CurrentUser.id());
   }
 
   private User customer(String customerId) {
@@ -142,7 +165,7 @@ public class BoxOfficeService {
       audit.log(order.event().id(), AuditLog.Kind.BILHETERIA, "Venda no balcão",
           "Pedido " + order.code() + " (" + order.items().size() + " ingresso(s)) vendido na bilheteria por "
               + (req.method() == null ? "" : req.method().name()) + ".",
-          users.findById(CurrentUser.id()).map(u -> u.getBadge() != null ? u.getBadge() : u.getEmail()).orElse(CurrentUser.id()));
+          operatorBadge());
     }
     return order;
   }

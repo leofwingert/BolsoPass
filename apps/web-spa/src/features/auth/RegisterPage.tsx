@@ -4,22 +4,20 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { errorMessage } from '@/api/errors';
 import { useAuth } from '@/auth/AuthProvider';
 import { Button, Card, Field, inputClass, Logo } from '@/components/ui';
+import { ACCOUNT_MESSAGES, MIN_PASSWORD, isEmail, isFullName, isPhoneWithDdd, isStrongEnoughPassword } from '@/domain/account';
 import { isValidCpf, maskCpf } from '@/domain/cpf';
 import { maskPhone } from '@/lib/format';
-
-const MIN_PASSWORD = 8;
-const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 type Form = { name: string; email: string; cpf: string; phone: string; password: string; confirm: string; activationCode: string; terms: boolean };
 type Issues = Partial<Record<keyof Form, string>>;
 
 function validate(f: Form): Issues {
   const e: Issues = {};
-  if (f.name.trim().split(/\s+/).length < 2) e.name = 'Informe nome e sobrenome';
-  if (!EMAIL_RE.test(f.email.trim())) e.email = 'E-mail inválido';
+  if (!isFullName(f.name)) e.name = ACCOUNT_MESSAGES.name;
+  if (!isEmail(f.email)) e.email = ACCOUNT_MESSAGES.email;
   if (!isValidCpf(f.cpf)) e.cpf = 'CPF inválido';
-  if (f.phone.replace(/\D/g, '').length < 10) e.phone = 'Informe um telefone com DDD';
-  if (f.password.length < MIN_PASSWORD) e.password = `Mínimo de ${MIN_PASSWORD} caracteres`;
+  if (!isPhoneWithDdd(f.phone)) e.phone = ACCOUNT_MESSAGES.phone;
+  if (!isStrongEnoughPassword(f.password)) e.password = `Mínimo de ${MIN_PASSWORD} caracteres`;
   if (f.confirm !== f.password) e.confirm = 'As senhas não conferem';
   if (!f.terms) e.terms = 'Aceite os termos para continuar';
   return e;

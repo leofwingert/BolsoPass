@@ -62,6 +62,11 @@ class UserAdminIntegrationTest {
   }
 
   private static Map<String, Object> signup(String name, String email, String cpf, String password) {
+    return signup(name, email, cpf, password, null);
+  }
+
+  private static Map<String, Object> signup(
+      String name, String email, String cpf, String password, String activationCode) {
     Map<String, Object> m = new HashMap<>();
     m.put("name", name);
     m.put("email", email);
@@ -69,6 +74,7 @@ class UserAdminIntegrationTest {
     m.put("phone", "(51) 99876-5432");
     m.put("password", password);
     m.put("acceptTerms", true);
+    if (activationCode != null) m.put("activationCode", activationCode);
     return m;
   }
 
@@ -111,17 +117,13 @@ class UserAdminIntegrationTest {
   @Test
   void cpfCadastradoNoBalcaoEAssumidoPeloDonoNoCadastro() throws Exception {
     String op = operatorLogin("OP-88219", "123456");
-    String counterId = body(send(post("/api/v1/operator/box-office/customers"),
+    JsonNode created = body(send(post("/api/v1/operator/box-office/customers"),
                 Map.of("cpf", "864.209.753-10", "name", "Rui Barbosa Lima", "phone", "(51) 98888-1111"), op)
-            .andExpect(status().isCreated()))
-        .path("id").asText();
-
-    JsonNode customer = body(send(post("/api/v1/operator/box-office/customers"),
-                Map.of("cpf", "864.209.753-10"), op)
-            .andExpect(status().isOk()));
+            .andExpect(status().isCreated()));
+    String counterId = created.path("id").asText();
     JsonNode session = body(send(post("/api/v1/auth/register"),
                 signup("Rui Barbosa Lima", "rui@teste.io", "86420975310", "senhaforte",
-                    customer.path("activationCode").asText()), null)
+                    created.path("activationCode").asText()), null)
             .andExpect(status().isCreated()));
     // Mesma conta (os ingressos comprados no balcão continuam nela), agora com e-mail e senha.
     assertThat(session.path("user").path("id").asText()).isEqualTo(counterId);
@@ -138,9 +140,33 @@ class UserAdminIntegrationTest {
             "x", Set.of(Role.ROLE_CLIENT))
         .withContact("314.159.265-90", "(51) 97777-0000"));
 
+    // Só o CPF não basta (sem código, ou com código errado): ninguém toma a conta de outra pessoa.
     send(post("/api/v1/auth/register"),
                 signup("Ivo Pereira Lopes", "ivo@teste.io", "314.159.265-90", "senhaforte"), null)
             .andExpect(status().isConflict());
+    send(post("/api/v1/auth/register"),
+                signup("Ivo Pereira Lopes", "ivo@teste.io", "314.159.265-90", "senhaforte", "000000"), null)
+            .andExpect(status().isConflict());
+
+    // O operador gera um código novo no balcão e entrega à pessoa.
+    String op = operatorLogin("OP-88219", "123456");
+    String code = body(send(post("/api/v1/operator/box-office/customers/u-legado-balcao/activation-code"), null, op)
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.pendingActivation").value(true)))
+        .path("activationCode").asText();
+    assertThat(code).matches("\\d{6}");
+
+    JsonNode session = body(send(post("/api/v1/auth/register"),
+                signup("Ivo Pereira Lopes", "ivo@teste.io", "314.159.265-90", "senhaforte", code), null)
+            .andExpect(status().isCreated()));
+    assertThat(session.path("user").path("id").asText()).isEqualTo("u-legado-balcao");
+
+    // Conta já ativada: o balcão não gera mais código e a busca mostra que não está pendente.
+    send(post("/api/v1/operator/box-office/customers/u-legado-balcao/activation-code"), null, op)
+        .andExpect(status().isConflict());
+    send(get("/api/v1/operator/box-office/customers?cpf=31415926590"), null, op)
+        .andExpect(jsonPath("$.pendingActivation").value(false))
+        .andExpect(jsonPath("$.activationCode").doesNotExist());
   }
 
   @Test

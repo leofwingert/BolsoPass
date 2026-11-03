@@ -1,3 +1,4 @@
+import { ACCOUNT_MESSAGES, isFullName } from './account';
 import { isValidCpf, normalizeCpf } from './cpf';
 
 /**
@@ -17,8 +18,8 @@ export function validateHolders(holders: readonly Holder[]): HolderIssue[] {
   const issues: HolderIssue[] = [];
   const seen = new Set<string>();
   for (const h of holders) {
-    if (h.name.trim().split(/\s+/).length < 2) {
-      issues.push({ seatId: h.seatId, field: 'name', message: 'Informe nome e sobrenome' });
+    if (!isFullName(h.name)) {
+      issues.push({ seatId: h.seatId, field: 'name', message: ACCOUNT_MESSAGES.name });
     }
     if (!isValidCpf(h.cpf)) {
       issues.push({ seatId: h.seatId, field: 'cpf', message: 'CPF inválido' });

@@ -1,11 +1,13 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Copy, CreditCard, KeyRound, Search, ShieldCheck, ScanLine, UserCog, UserPlus, UserRound, X } from 'lucide-react';
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { ChevronLeft, ChevronRight, Copy, CreditCard, KeyRound, Search, ShieldCheck, ScanLine, UserCog, UserPlus, UserRound } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
 import { api } from '@/api';
 import { errorMessage } from '@/api/errors';
 import type { AdminUser, AdminUserFilters, AdminUserResult, NewAdminUser, UserProfile } from '@/api/types';
 import { useAuth } from '@/auth/AuthProvider';
+import { Modal } from '@/components/Modal';
 import { Badge, Button, Card, ErrorState, Field, Spinner, inputClass } from '@/components/ui';
+import { ACCOUNT_MESSAGES, MIN_PASSWORD, isStrongEnoughPassword } from '@/domain/account';
 import { isValidCpf, maskCpf } from '@/domain/cpf';
 import { cx, formatDate, maskPhone } from '@/lib/format';
 
@@ -23,20 +25,6 @@ const isStaff = (p: UserProfile) => p === 'OPERATOR' || p === 'SELLER';
 function ProfileBadge({ profile }: { profile: UserProfile }) {
   const p = profileInfo(profile);
   return <Badge tone={p.tone} icon={<p.icon className="size-3" />}>{p.label}</Badge>;
-}
-
-function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-navy/50 sm:items-center" onClick={onClose}>
-      <div role="dialog" aria-label={title} className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <h2 className="text-lg font-bold">{title}</h2>
-          <button type="button" onClick={onClose} className="rounded-lg p-1.5 hover:bg-surface" aria-label="Fechar"><X className="size-5" /></button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
 }
 
 /** Matrícula e PIN gerados: aparecem uma única vez. */
@@ -106,23 +94,23 @@ function CreateUserDialog({ onClose, onSaved }: { onClose: () => void; onSaved: 
   function submit(e: FormEvent) {
     e.preventDefault();
     if (form.cpf && !isValidCpf(form.cpf)) return setLocalError('CPF inválido');
-    if (!staff && (form.password ?? '').length < 8) return setLocalError('A senha precisa ter pelo menos 8 caracteres');
+    if (!staff && !isStrongEnoughPassword(form.password ?? '')) return setLocalError(ACCOUNT_MESSAGES.password);
     setLocalError(undefined);
     create.mutate({ ...form, cpf: form.cpf || undefined, phone: form.phone || undefined, password: staff ? undefined : form.password });
   }
 
-  if (create.data?.credentials) return <Dialog title="Usuário cadastrado" onClose={onClose}><Credentials result={create.data} onDone={onClose} /></Dialog>;
+  if (create.data?.credentials) return <Modal title="Usuário cadastrado" onClose={onClose}><Credentials result={create.data} onDone={onClose} /></Modal>;
   if (create.data) {
     return (
-      <Dialog title="Usuário cadastrado" onClose={onClose}>
+      <Modal title="Usuário cadastrado" onClose={onClose}>
         <p className="text-sm"><b>{create.data.user.name}</b> foi cadastrado como <b>{create.data.user.profileLabel}</b> e já pode entrar com o e-mail e a senha definidos.</p>
         <div className="mt-4 flex justify-end"><Button onClick={onClose}>Concluir</Button></div>
-      </Dialog>
+      </Modal>
     );
   }
 
   return (
-    <Dialog title="Cadastrar usuário" onClose={onClose}>
+    <Modal title="Cadastrar usuário" onClose={onClose}>
       <form onSubmit={submit} className="grid gap-4">
         <ProfilePicker value={form.profile} onChange={(p) => set('profile', p)} />
         <Field label="Nome completo"><input className={inputClass} value={form.name} onChange={(e) => set('name', e.target.value)} required /></Field>
@@ -136,7 +124,7 @@ function CreateUserDialog({ onClose, onSaved }: { onClose: () => void; onSaved: 
         {staff ? (
           <p className="rounded-lg bg-surface px-3 py-2 text-sm text-muted">A matrícula e o PIN da bilheteria são gerados ao salvar.</p>
         ) : (
-          <Field label="Senha inicial" hint="Mínimo de 8 caracteres"><input className={inputClass} type="password" value={form.password} onChange={(e) => set('password', e.target.value)} autoComplete="new-password" /></Field>
+          <Field label="Senha inicial" hint={`Mínimo de ${MIN_PASSWORD} caracteres`}><input className={inputClass} type="password" value={form.password} onChange={(e) => set('password', e.target.value)} autoComplete="new-password" /></Field>
         )}
         {(localError || create.error) && <p role="alert" className="rounded-lg bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700">{localError ?? errorMessage(create.error)}</p>}
         <div className="flex justify-end gap-2">
@@ -144,7 +132,7 @@ function CreateUserDialog({ onClose, onSaved }: { onClose: () => void; onSaved: 
           <Button type="submit" loading={create.isPending}><UserPlus className="size-4" aria-hidden /> Cadastrar</Button>
         </div>
       </form>
-    </Dialog>
+    </Modal>
   );
 }
 
@@ -152,18 +140,18 @@ function ChangeProfileDialog({ user, onClose, onSaved }: { user: AdminUser; onCl
   const [profile, setProfile] = useState<UserProfile>();
   const change = useMutation({ mutationFn: (p: UserProfile) => api.admin.changeProfile(user.id, p), onSuccess: onSaved });
 
-  if (change.data?.credentials) return <Dialog title="Perfil alterado" onClose={onClose}><Credentials result={change.data} onDone={onClose} /></Dialog>;
+  if (change.data?.credentials) return <Modal title="Perfil alterado" onClose={onClose}><Credentials result={change.data} onDone={onClose} /></Modal>;
   if (change.data) {
     return (
-      <Dialog title="Perfil alterado" onClose={onClose}>
+      <Modal title="Perfil alterado" onClose={onClose}>
         <p className="text-sm"><b>{change.data.user.name}</b> agora é <b>{change.data.user.profileLabel}</b>.</p>
         <div className="mt-4 flex justify-end"><Button onClick={onClose}>Concluir</Button></div>
-      </Dialog>
+      </Modal>
     );
   }
 
   return (
-    <Dialog title="Alterar perfil" onClose={onClose}>
+    <Modal title="Alterar perfil" onClose={onClose}>
       <div className="grid gap-4">
         <div className="flex items-center justify-between gap-2 rounded-xl bg-surface p-3">
           <span className="min-w-0"><b className="block truncate">{user.name}</b><span className="text-xs text-muted">{user.email}</span></span>
@@ -186,7 +174,7 @@ function ChangeProfileDialog({ user, onClose, onSaved }: { user: AdminUser; onCl
           </Button>
         </div>
       </div>
-    </Dialog>
+    </Modal>
   );
 }
 

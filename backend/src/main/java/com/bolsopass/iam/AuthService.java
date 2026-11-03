@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.regex.Pattern;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -44,9 +43,6 @@ public class AuthService {
   private final AuditService audit;
   private final SecureRandom random = new SecureRandom();
   private final Map<String, Failures> failures = new ConcurrentHashMap<>();
-
-  private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
-  static final int MIN_PASSWORD = 8;
 
   private record Failures(int count, Instant lockedUntil) {}
 
@@ -129,20 +125,15 @@ public class AuthService {
    */
   @Transactional
   public SessionDto register(RegisterRequest in) {
-    String name = in.name() == null ? "" : in.name().trim().replaceAll("\\s+", " ");
-    String email = in.email() == null ? "" : in.email().trim().toLowerCase();
-    String phone = in.phone() == null ? "" : in.phone().trim();
-    if (name.split(" ").length < 2) throw ApiException.badRequest("Informe nome e sobrenome");
-    if (!EMAIL.matcher(email).matches()) throw ApiException.badRequest("E-mail inválido");
+    String name = AccountRules.fullName(in.name());
+    String email = AccountRules.email(in.email());
     if (!Cpf.isValid(in.cpf())) throw ApiException.badRequest("CPF inválido");
-    if (phone.replaceAll("\\D", "").length() < 10) throw ApiException.badRequest("Informe um telefone com DDD");
-    if (in.password() == null || in.password().length() < MIN_PASSWORD) {
-      throw ApiException.badRequest("A senha precisa ter pelo menos " + MIN_PASSWORD + " caracteres");
-    }
+    String phone = AccountRules.phone(in.phone());
+    String password = AccountRules.password(in.password());
     if (!in.acceptTerms()) throw ApiException.badRequest("Aceite os termos de uso para criar a conta");
 
     String cpf = Cpf.formatted(Cpf.digits(in.cpf()));
-    User owner = users.findByCpfIn(List.of(Cpf.digits(in.cpf()), cpf)).stream().findFirst().orElse(null);
+    User owner = users.findByCpf(cpf).orElse(null);
     users.findByEmail(email)
         .filter(u -> owner == null || !u.getId().equals(owner.getId()))
         .ifPresent(u -> { throw ApiException.conflict("E-mail já cadastrado"); });
@@ -153,12 +144,12 @@ public class AuthService {
       if (!owner.canBeClaimedWith(in.activationCode(), passwordEncoder)) {
         throw ApiException.conflict("Informe o código de ativação entregue no balcão");
       }
-      owner.claim(name, email, passwordEncoder.encode(in.password()), phone);
+      owner.claim(name, email, passwordEncoder.encode(password), phone);
       user = owner;
       audit.log(null, AuditLog.Kind.SEGURANCA, "Conta do balcão assumida",
-          "O dono do CPF " + maskCpf(cpf) + " assumiu a conta criada na bilheteria (" + email + ").", email);
+          "O dono do CPF " + Cpf.mask(cpf) + " assumiu a conta criada na bilheteria (" + email + ").", email);
     } else {
-      user = users.save(new User("u-" + UUID.randomUUID(), name, email, passwordEncoder.encode(in.password()),
+      user = users.save(new User("u-" + UUID.randomUUID(), name, email, passwordEncoder.encode(password),
               Set.of(Role.ROLE_CLIENT))
           .withContact(cpf, phone));
       audit.log(null, AuditLog.Kind.SEGURANCA, "Conta criada", "Cadastro público de cliente (" + email + ").", email);
@@ -169,13 +160,6 @@ public class AuthService {
   /** PIN da bilheteria. Contas antigas (antes do campo próprio) guardavam o PIN como senha. */
   private static String pinOf(User u) {
     return u.getPinHash() != null ? u.getPinHash() : u.getPasswordHash();
-  }
-
-  /** CPF parcial (LGPD): ***.982.247-** */
-  public static String maskCpf(String cpf) {
-    if (cpf == null) return null;
-    String d = Cpf.digits(cpf);
-    return d.length() != 11 ? cpf : "***." + d.substring(3, 6) + "." + d.substring(6, 9) + "-**";
   }
 
   /**

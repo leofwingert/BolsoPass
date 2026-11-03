@@ -16,7 +16,8 @@
 | **Cadastro público cria sempre um Cliente.** Não existe campo de perfil; se alguém tentar mandar um, ele é ignorado | `AuthService.register` |
 | Cliente não entra na administração nem na bilheteria (403) | `RequireArea`, `@PreAuthorize` |
 | Cadastro pede nome e sobrenome, e-mail, CPF válido, telefone com DDD, senha de 8+ caracteres e aceite dos termos. E-mail e CPF são únicos | `AuthService.register`, `RegisterPage` |
-| **CPF de conta criada no balcão:** quem se cadastra com esse CPF **assume a conta** (define e-mail e senha) e vê os ingressos que já comprou na bilheteria. Contas do balcão anteriores a esta versão (sem a marca) são reconhecidas pelo e-mail automático `cpf…@balcao.bolsopass.io` | `User.claim`, `User.isCounterAccount` |
+| **Conta criada no balcão:** quem se cadastra com esse CPF **e o código de ativação** de 6 dígitos entregue no balcão (vale 24 h) **assume a conta** e vê os ingressos que já comprou na bilheteria. **Só o CPF não basta**: sem o código, ninguém toma a conta de outra pessoa (achado do relatório [Segurança.md](../Segurança.md)) | `User.canBeClaimedWith`, `User.claim` |
+| O banco guarda só o **hash** do código. Código vencido, perdido ou conta antiga do balcão (sem código): o operador busca o CPF e clica em **Gerar código de ativação** (o anterior deixa de valer; vai para a auditoria) | `BoxOfficeService.issueActivationCode` |
 | CPF de conta normal (já tem senha): o cadastro é recusado com "CPF já cadastrado. Entre com seu e-mail e senha." | `AuthService.register` |
 | **Um perfil por conta.** Promover troca o perfil. Quem vira equipe deixa de comprar como cliente; os ingressos já comprados continuam válidos | `UserAdminService.changeProfile` |
 | Bilheteria (`OP-xxxxx`) e Venda (`VD-xxxxx`) recebem **matrícula e PIN de 6 dígitos**, mostrados ao admin **uma única vez**. Rebaixar tira a matrícula | `UserAdminService` |
@@ -40,7 +41,8 @@
 
 | Método | Caminho | Quem |
 | :--- | :--- | :--- |
-| `POST` | `/auth/register` | Público. Devolve a sessão (já logado) |
+| `POST` | `/auth/register` | Público. Devolve a sessão (já logado). `activationCode` para assumir conta do balcão |
+| `POST` | `/operator/box-office/customers/{id}/activation-code` | Bilheteria e Venda. Gera novo código para conta do balcão ainda não ativada |
 | `GET` | `/admin/users?q=&profile=&from=&to=&page=&size=` | `ROLE_ADMIN` |
 | `POST` | `/admin/users` | `ROLE_ADMIN`. Devolve o usuário e, se for equipe, `credentials` (matrícula e PIN) |
 | `PATCH` | `/admin/users/{id}/profile` | `ROLE_ADMIN`. Corpo `{ "profile": "CLIENT" \| "ADMIN" \| "OPERATOR" \| "SELLER" }` |
@@ -70,13 +72,30 @@
   3. ela entra com essas credenciais;
   4. o login antigo `OP-88219` continua funcionando.
 
-## 5. Correção encontrada no caminho
+## 5. Correções encontradas no caminho
 
 O **código do pedido** (`PLS-12345-BR`) era sorteado sem conferir se já existia. Com mais pedidos no
 banco, uma compra podia falhar com erro interno. Agora o sorteio confere antes, e o id do
 ingresso, que usa os mesmos 5 dígitos, também fica único (`ReservationService.newCode`).
 
-## 6. Pendências
+O **commit 44525fa8** (código de ativação) não compilava: a busca de cliente por CPF no balcão
+chamava `view(u, false)` com 2 argumentos e respondia erro 500. Também faltava a tela do balcão
+mostrar o código, gerar um novo e a API simulada conhecer a regra. Tudo corrigido.
+
+## 6. Limpeza de código repetido (03/11)
+
+| Antes | Agora |
+| :--- | :--- |
+| Regras de nome, e-mail, telefone e senha copiadas em 3 lugares no backend (cadastro, administração, balcão) | `iam/AccountRules` |
+| As mesmas regras copiadas em 5 lugares no frontend (cadastro, Usuários, titulares, API simulada) | `domain/account.ts` |
+| Busca de usuário por CPF (com e sem máscara) repetida 4 vezes | `UserRepository.findByCpf` |
+| Formatação de CPF duplicada no balcão; CPF parcial no `AuthService` | `Cpf.formatted` e `Cpf.mask` |
+| CPF parcial reescrito na API simulada (já existia `redactCpf`) | `redactCpf` |
+| Máscara de telefone dentro da tela de venda | `lib/format.maskPhone` |
+| Três janelas sobrepostas feitas à mão (digitar código, trocar evento, Usuários) | `components/Modal` |
+| Matrícula do operador para auditoria montada em dois pontos do balcão | `BoxOfficeService.operatorBadge` |
+
+## 7. Pendências
 
 | Item | Observação |
 | :--- | :--- |

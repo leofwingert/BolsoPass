@@ -1,6 +1,9 @@
-import { act, screen, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { openAs } from '@/test/renderApp';
+import { openAs, renderApp } from '@/test/renderApp';
+
+/** Código entregue no balcão, usado no teste seguinte para ativar a conta no site. */
+let activation: { cpf: string; code: string } | undefined;
 
 type User = Awaited<ReturnType<typeof openAs>>['user'];
 
@@ -113,12 +116,36 @@ describe('venda no balcão da bilheteria', () => {
     await user.type(screen.getByLabelText(/Nome completo/), 'Rita de Cássia Moura');
     await user.type(screen.getByLabelText(/Telefone/), '51998761234');
     await user.click(screen.getByRole('button', { name: /Cadastrar e continuar/ }));
+    // O operador vê o código de ativação para entregar ao cliente antes de seguir.
+    const card = await screen.findByLabelText('Código de ativação');
+    const code = within(card).getByText(/^\d{6}$/).textContent!;
+    activation = { cpf: '15350946056', code };
+    await user.click(screen.getByRole('button', { name: /Continuar e escolher lugares/ }));
 
     await pickSeatsAndReserve(user);
     await user.click(screen.getByRole('button', { name: /Simular cartão sem saldo/ }));
     expect(await screen.findByText(/Tente outro cartão/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Desistir da compra/ }));
     expect(await screen.findByRole('button', { name: /Reservar/ })).toBeInTheDocument();
+  });
+
+  it('cliente do balcão ativa a conta no site só com o código entregue', async () => {
+    expect(activation).toBeDefined();
+    const { user, router } = renderApp('/auth/register');
+    await user.type(await screen.findByLabelText(/^Nome completo/), 'Rita de Cássia Moura');
+    await user.type(screen.getByLabelText(/^E-mail/), 'rita@teste.io');
+    await user.type(screen.getByLabelText(/^CPF/), activation!.cpf);
+    await user.type(screen.getByLabelText(/^Telefone/), '51998761234');
+    await user.type(screen.getByLabelText(/^Senha/), 'senhaforte');
+    await user.type(screen.getByLabelText(/^Confirmar senha/), 'senhaforte');
+    await user.click(screen.getByRole('checkbox'));
+    // Só o CPF não basta.
+    await user.click(screen.getByRole('button', { name: /Criar conta/ }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/código de ativação/);
+
+    await user.type(screen.getByLabelText(/^Código de ativação/), activation!.code);
+    await user.click(screen.getByRole('button', { name: /Criar conta/ }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
   });
 
   it('admin não vê nem acessa a bilheteria', async () => {

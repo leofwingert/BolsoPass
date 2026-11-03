@@ -71,6 +71,8 @@ export const httpApi: BolsoPassApi = {
     boxOffice: {
       findCustomer: (cpf) => http(`/operator/box-office/customers?cpf=${encodeURIComponent(cpf)}`),
       registerCustomer: (input) => http('/operator/box-office/customers', { method: 'POST', body: input }),
+      issueActivationCode: (customerId) =>
+        http(`/operator/box-office/customers/${customerId}/activation-code`, { method: 'POST' }),
       getSeatMap: (eventId) => http(`/operator/box-office/events/${eventId}/seats`),
       reserve: (eventId, customerId, seatIds) =>
         http(`/operator/box-office/events/${eventId}/reservations`, { method: 'POST', body: { customerId, seatIds } }),

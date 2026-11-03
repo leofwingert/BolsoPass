@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
-import java.util.regex.Pattern;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class UserAdminService {
   private static final ZoneId ZONE = ZoneId.of("America/Sao_Paulo");
-  private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
   /** Perfis que a administração atribui (um por conta). */
   public enum Profile {
@@ -127,29 +125,22 @@ public class UserAdminService {
   @Transactional
   public UserResult create(NewUser in, String actorId) {
     Profile profile = in.profile() == null ? Profile.CLIENT : in.profile();
-    String name = in.name() == null ? "" : in.name().trim().replaceAll("\\s+", " ");
-    String email = in.email() == null ? "" : in.email().trim().toLowerCase(Locale.ROOT);
-    if (name.split(" ").length < 2) throw ApiException.badRequest("Informe nome e sobrenome");
-    if (!EMAIL.matcher(email).matches()) throw ApiException.badRequest("E-mail inválido");
+    String name = AccountRules.fullName(in.name());
+    String email = AccountRules.email(in.email());
     if (users.findByEmail(email).isPresent()) throw ApiException.conflict("E-mail já cadastrado");
 
     String cpf = null;
     if (in.cpf() != null && !in.cpf().isBlank()) {
       if (!Cpf.isValid(in.cpf())) throw ApiException.badRequest("CPF inválido");
-      String d = Cpf.digits(in.cpf());
-      cpf = Cpf.formatted(d);
-      if (!users.findByCpfIn(List.of(d, cpf)).isEmpty()) throw ApiException.conflict("CPF já cadastrado");
+      cpf = Cpf.formatted(Cpf.digits(in.cpf()));
+      if (users.findByCpf(cpf).isPresent()) throw ApiException.conflict("CPF já cadastrado");
     } else if (profile == Profile.CLIENT) {
       throw ApiException.badRequest("CPF é obrigatório para clientes");
     }
-    String phone = in.phone() == null ? null : in.phone().trim();
+    String phone = in.phone() == null || in.phone().isBlank() ? null : in.phone().trim();
 
     // Cliente e admin entram com e-mail e senha; bilheteria e venda, com matrícula e PIN.
-    String password = in.password();
-    if (!profile.staff() && (password == null || password.length() < AuthService.MIN_PASSWORD)) {
-      throw ApiException.badRequest("A senha precisa ter pelo menos " + AuthService.MIN_PASSWORD + " caracteres");
-    }
-    String passwordHash = encoder.encode(password != null && !password.isBlank() ? password : UUID.randomUUID().toString());
+    String passwordHash = encoder.encode(profile.staff() ? UUID.randomUUID().toString() : AccountRules.password(in.password()));
 
     User u = new User("u-" + UUID.randomUUID(), name, email, passwordHash, profile.roles).withContact(cpf, phone);
     Credentials creds = null;
@@ -207,7 +198,7 @@ public class UserAdminService {
 
   static UserView view(User u) {
     Profile p = Profile.of(u);
-    return new UserView(u.getId(), u.getName(), u.getEmail(), AuthService.maskCpf(u.getCpf()), u.getPhone(), p,
+    return new UserView(u.getId(), u.getName(), u.getEmail(), Cpf.mask(u.getCpf()), u.getPhone(), p,
         p.label, u.getBadge(), u.getCreatedAt(), u.isCounterAccount());
   }
 }

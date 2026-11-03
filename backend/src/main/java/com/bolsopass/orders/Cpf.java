@@ -13,6 +13,13 @@ public final class Cpf {
     return digits.substring(0, 3) + "." + digits.substring(3, 6) + "." + digits.substring(6, 9) + "-" + digits.substring(9);
   }
 
+  /** CPF parcial (LGPD): ***.982.247-** */
+  public static String mask(String cpf) {
+    if (cpf == null) return null;
+    String d = digits(cpf);
+    return d.length() != 11 ? cpf : "***." + d.substring(3, 6) + "." + d.substring(6, 9) + "-**";
+  }
+
   public static boolean isValid(String value) {
     String cpf = digits(value);
     if (cpf.length() != 11 || cpf.chars().distinct().count() == 1) return false;

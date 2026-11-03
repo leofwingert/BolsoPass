@@ -102,6 +102,8 @@ export interface BolsoPassApi {
     boxOffice: {
       findCustomer(cpf: string): Promise<BoxOfficeCustomer>;
       registerCustomer(input: NewBoxOfficeCustomer): Promise<BoxOfficeCustomer>;
+      /** Novo código de ativação (vencido, perdido ou conta antiga sem código). */
+      issueActivationCode(customerId: string): Promise<BoxOfficeCustomer>;
       getSeatMap(eventId: string): Promise<SeatMap>;
       reserve(eventId: string, customerId: string, seatIds: string[]): Promise<{ reservation: Reservation; order: Order }>;
       pay(customerId: string, request: PaymentRequest, idempotencyKey: string): Promise<Order>;

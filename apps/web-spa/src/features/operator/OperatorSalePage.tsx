@@ -8,6 +8,7 @@ import { ApiError, errorMessage } from '@/api/errors';
 import type { AssignedEvent, BoxOfficeCustomer, Order, Reservation } from '@/api/types';
 import { useAuth } from '@/auth/AuthProvider';
 import { isSellerOnly } from '@/auth/roles';
+import { Modal } from '@/components/Modal';
 import { Badge, Button, Card, ErrorState, EventCover, Field, Spinner, inputClass } from '@/components/ui';
 import { isValidCpf, maskCpf, redactCpf } from '@/domain/cpf';
 import { validateHolders } from '@/domain/purchaseRules';
@@ -34,19 +35,43 @@ function Steps({ step }: { step: number }) {
 }
 
 /** Etapa 1: busca o cliente pelo CPF (traz nome e telefone) ou faz o cadastro rápido. */
+/** Código para o cliente ativar a conta no site (Criar conta, com o mesmo CPF). Mostrado uma vez. */
+function ActivationCode({ code }: { code: string }) {
+  return (
+    <div aria-label="Código de ativação" className="mt-3 rounded-xl border-2 border-dashed border-brand-300 bg-brand-50 p-3 text-center">
+      <p className="text-[11px] font-bold tracking-wider text-brand-700 uppercase">Código de ativação</p>
+      <p className="font-mono text-3xl font-extrabold tracking-[0.3em]">{code}</p>
+      <p className="mt-1 text-xs text-muted">Entregue ao cliente: no site, em <b>Criar conta</b>, com o mesmo CPF e este código. Vale 24 h.</p>
+    </div>
+  );
+}
+
 function CustomerStep({ onConfirm }: { onConfirm: (c: BoxOfficeCustomer) => void }) {
   const [cpf, setCpf] = useState('');
   const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', email: '' });
   const find = useMutation({ mutationFn: (value: string) => api.operator.boxOffice.findCustomer(value) });
-  const register = useMutation({
-    mutationFn: () => api.operator.boxOffice.registerCustomer({ cpf, ...newCustomer }),
-    onSuccess: onConfirm,
-  });
+  // Depois do cadastro rápido, a tela segura o cliente até o operador passar o código de ativação.
+  const register = useMutation({ mutationFn: () => api.operator.boxOffice.registerCustomer({ cpf, ...newCustomer }) });
+  const reissue = useMutation({ mutationFn: (id: string) => api.operator.boxOffice.issueActivationCode(id) });
+
+  if (register.data) {
+    return (
+      <Card className="p-4">
+        <p className="text-[11px] font-bold tracking-wider text-ok uppercase">Cliente cadastrado</p>
+        <p className="mt-1 text-2xl font-extrabold">{register.data.name}</p>
+        {register.data.activationCode && <ActivationCode code={register.data.activationCode} />}
+        <Button size="lg" className="mt-3 w-full" onClick={() => onConfirm(register.data!)}>
+          <UserRound className="size-5" aria-hidden /> Continuar e escolher lugares
+        </Button>
+      </Card>
+    );
+  }
   const notFound = find.error instanceof ApiError && find.error.status === 404;
 
   function search(e: FormEvent) {
     e.preventDefault();
     register.reset();
+    reissue.reset();
     find.mutate(cpf);
   }
 
@@ -73,6 +98,19 @@ function CustomerStep({ onConfirm }: { onConfirm: (c: BoxOfficeCustomer) => void
             {find.data.email && <li className="flex items-center gap-2"><Mail className="size-4 text-muted" aria-hidden /> {find.data.email}</li>}
           </ul>
           <p className="mt-2 text-xs text-muted">Confirme nome e telefone com a pessoa antes de seguir.</p>
+          {find.data.pendingActivation && (
+            reissue.data?.activationCode ? (
+              <ActivationCode code={reissue.data.activationCode} />
+            ) : (
+              <div className="mt-3 rounded-lg bg-warn-soft p-3 text-xs text-amber-900">
+                Conta criada no balcão e ainda não ativada no site.
+                <Button variant="outline" size="sm" className="mt-2 w-full" loading={reissue.isPending} onClick={() => reissue.mutate(find.data!.id)}>
+                  Gerar código de ativação
+                </Button>
+                {reissue.error && <p role="alert" className="mt-1 font-medium text-brand-700">{errorMessage(reissue.error)}</p>}
+              </div>
+            )
+          )}
           <Button size="lg" className="mt-3 w-full" onClick={() => onConfirm(find.data!)}>
             <UserRound className="size-5" aria-hidden /> Confirmar cliente e escolher lugares
           </Button>
@@ -440,12 +478,7 @@ function Receipt({ sale, eventTitle, onNew }: { sale: PaidSale; eventTitle: stri
 function EventPicker({ currentId, onPick, onClose }: { currentId: string; onPick: (e: AssignedEvent['event']) => void; onClose: () => void }) {
   const events = useQuery({ queryKey: ['operator', 'events'], queryFn: api.operator.listAssignedEvents });
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-navy/50 sm:items-center" onClick={onClose}>
-      <div role="dialog" aria-label="Escolher evento para vender" className="max-h-[80vh] w-full max-w-xl overflow-y-auto rounded-t-2xl bg-white p-4 shadow-2xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold">Escolher evento para vender</h2>
-          <button type="button" onClick={onClose} className="rounded-lg p-1.5 hover:bg-surface" aria-label="Fechar"><XCircle className="size-5" /></button>
-        </div>
+    <Modal title="Escolher evento para vender" onClose={onClose} className="max-w-xl">
         {events.isLoading && <Spinner label="Carregando eventos…" />}
         {events.error && <ErrorState message={errorMessage(events.error)} onRetry={() => void events.refetch()} />}
         <div className="mt-3 grid gap-2">
@@ -465,8 +498,7 @@ function EventPicker({ currentId, onPick, onClose }: { currentId: string; onPick
           })}
           {events.data?.length === 0 && <p className="py-6 text-center text-sm text-muted">Nenhum evento com vendas abertas.</p>}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
