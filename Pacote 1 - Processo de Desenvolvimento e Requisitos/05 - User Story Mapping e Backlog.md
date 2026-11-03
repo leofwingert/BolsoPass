@@ -12,7 +12,7 @@ tags:
   - user-stories
   - pacotes/pacote-1
 created: 2026-10-05
-updated: 2026-10-14
+updated: 2026-11-03
 status: pronto
 ---
 
@@ -65,6 +65,7 @@ A matriz abaixo distribui as histórias de usuário de acordo com o plano de evo
 | **Fatia 1: MVP Core (Pacotes 1 e 2)** | **US-01:** Login JWT com papéis RBAC | **US-04:** Catálogo em cache Redis<br/>**US-05:** Alocação atômica de assento | **US-08:** Máquina de estados do pedido<br/>**US-09:** Publicação com Transactional Outbox | **US-12:** Consumo Kafka de eventos de pagamento | **US-16:** Orquestração completa via Docker Compose |
 | **Fatia 2: Checkpoint (Pacote 3)** | **US-02:** Rotação de Refresh Token no Redis | **US-06:** Expiração estrita de reserva em 10 min | **US-10:** Suporte ao cabeçalho `Idempotency-Key` | **US-13:** Geração de PDF e assinatura do QR Code<br/>**US-14:** Push reativo via WebSocket | **US-17:** Pipeline de CI/CD com Testcontainers |
 | **Fatia 3: Produto Completo (Pacote 4)** | **US-03:** Auditoria de acessos e Rate Limiting | **US-07:** Mapa de assentos interativo com WebSocket | **US-11:** Tratamento de recusas e falhas de gateway | **US-15:** Validação offline na portaria | **US-18:** Dashboard analítico de telemetria em tempo real |
+| **Fatia 4: Bilheteria e Contas (incorporada nas versões 4.0–5.1)** | **US-20:** Cadastro público e ativação da conta do balcão<br/>**US-21:** Gestão de usuários e perfis | — | **US-19:** Venda no balcão (crédito, PIX, dinheiro) | — | **US-19:** Venda no terminal de venda |
 
 ---
 
@@ -357,4 +358,69 @@ Todas as histórias de usuário são formalizadas utilizando o padrão [Gherkin/
     Quando a organizadora abrir a rota /organizer/dashboard
     Entao o painel deve exibir graficos de throughput de pedidos por minuto, conversao de checkout e total arrecadado
     E os dados devem ser atualizados a cada 2 segundos via stream de telemetria.
+  ```
+
+---
+
+### Epico 6: Bilheteria e Gestao de Contas (incorporado na implementacao)
+
+Histórias que surgiram dos mockups da bilheteria e da administração durante as versões 4.0 a 5.1.
+
+#### [US-19] Venda no Balcao da Bilheteria
+- **Como** vendedora do terminal de venda (ou operador da bilheteria),
+- **Quero** encontrar o cliente pelo CPF, escolher lugares vagos e cobrar no crédito, PIX ou dinheiro,
+- **Para que** quem chega ao local do evento compre com as mesmas garantias do site e receba o ingresso na própria conta.
+- **Módulo Relacionado:** Módulo de Pedidos e Checkout | [[03 - Requisitos Funcionais (5 Modulos)#RF-19\|RF-19]]
+- **Critérios de Aceitação (BDD):**
+  ```gherkin
+  Cenario: Venda em dinheiro para cliente ja cadastrado
+    Dado que a vendedora escolheu o evento do terminal
+    E buscou o CPF de um cliente cadastrado, vendo nome e telefone
+    Quando escolher um lugar vago, selecionar Dinheiro e informar valor recebido maior que o total
+    Entao o sistema deve mostrar o troco e confirmar a venda
+    E o ingresso deve aparecer na carteira do titular no site.
+
+  Cenario: Reserva online pendente nao bloqueia o balcao
+    Dado que o cliente reservou um lugar pelo site e ainda nao pagou
+    Quando a vendedora vender outro lugar do mesmo evento para ele no balcao
+    Entao a venda deve ser concluida normalmente.
+  ```
+
+#### [US-20] Cadastro Publico e Ativacao da Conta do Balcao
+- **Como** comprador,
+- **Quero** criar minha conta na tela de login e, se já comprei no balcão, ativar a conta criada lá,
+- **Para que** eu veja todos os meus ingressos no site.
+- **Módulo Relacionado:** Módulo de Identidade e IAM | [[03 - Requisitos Funcionais (5 Modulos)#RF-03\|RF-03]]
+- **Critérios de Aceitação (BDD):**
+  ```gherkin
+  Cenario: Cadastro publico cria sempre um Cliente
+    Dado que um visitante preencheu nome, e-mail, CPF valido, telefone e senha
+    Quando confirmar o cadastro
+    Entao a conta deve ser criada com o perfil Cliente e o visitante deve entrar logado
+    E o acesso a administracao e a bilheteria deve retornar 403.
+
+  Cenario: Conta do balcao so e assumida com o codigo de ativacao
+    Dado que o cliente foi cadastrado no balcao e recebeu um codigo de 6 digitos
+    Quando se cadastrar no site com o mesmo CPF e sem o codigo
+    Entao o sistema deve recusar com "Informe o codigo de ativacao entregue no balcao"
+    E ao informar o codigo correto, dentro de 24 h, deve assumir a conta com os ingressos ja comprados.
+  ```
+
+#### [US-21] Gestao de Usuarios e Perfis pela Administracao
+- **Como** administradora da plataforma,
+- **Quero** ver todos os usuários com filtros, cadastrar contas e promover usuários para Admin, Bilheteria ou Venda,
+- **Para que** eu monte a equipe de cada evento sem depender de contas fixas.
+- **Módulo Relacionado:** Módulo de Identidade e IAM | [[03 - Requisitos Funcionais (5 Modulos)#RF-02\|RF-02]], [[03 - Requisitos Funcionais (5 Modulos)#RF-03\|RF-03]]
+- **Critérios de Aceitação (BDD):**
+  ```gherkin
+  Cenario: Promover cliente para Bilheteria
+    Dado que a admin abriu a pagina Usuarios e filtrou pelo perfil Cliente
+    Quando alterar o perfil de um cliente para Bilheteria
+    Entao o sistema deve gerar matricula OP-xxxxx e PIN de 6 digitos, mostrados uma unica vez
+    E a pessoa deve entrar na bilheteria com essa matricula e esse PIN
+    E deixar de comprar como cliente.
+
+  Cenario: Admin nao altera o proprio perfil
+    Dado que a admin esta na pagina Usuarios
+    Entao o botao Alterar perfil da propria linha deve estar desativado.
   ```

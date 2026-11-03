@@ -74,7 +74,7 @@ Os artefatos de engenharia deste projeto foram distribuídos em notas modulares 
 2. **Documento de Visão do Produto:**
    - Documento descritivo: [[02 - Documento de Visao do Produto]]
 3. **Backlog com Épicos e Histórias de usuários, no formato de Story Mapping:**
-   - Documento descritivo: [[05 - User Story Mapping e Backlog]] (18 histórias de usuário com critérios de aceitação em BDD)
+   - Documento descritivo: [[05 - User Story Mapping e Backlog]] (21 histórias de usuário com critérios de aceitação em BDD)
 4. **Requisitos não-funcionais:**
    - Documento descritivo: [[04 - Requisitos Nao-Funcionais (RNFs)]] (RNF-01 a RNF-08 com métricas quantitativas e verificação)
 5. **Mockups (low, medium ou high res, a escolha) e mapa de navegação do front-end:**

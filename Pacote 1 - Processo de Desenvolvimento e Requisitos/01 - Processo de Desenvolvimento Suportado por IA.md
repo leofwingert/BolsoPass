@@ -10,7 +10,7 @@ tags:
   - processo
   - pacotes/pacote-1
 created: 2026-10-05
-updated: 2026-10-14
+updated: 2026-11-03
 status: pronto
 ---
 
@@ -77,8 +77,9 @@ O ciclo de vida de cada funcionalidade segue cinco etapas iterativas e bem delim
 
 | Ferramenta / Agente | Função Específica no Projeto | Modo de Interação |
 | :--- | :--- | :--- |
-| **Google Antigravity (AGY)** | Plataforma principal de orquestração de desenvolvimento agentic. Responsável pelo scaffolding de microsserviços, execução de planos com `/plan` e automação de testes. | CLI e IDE nativa |
-| **Claude Code & Agent Skills** | Execução de tarefas especializadas no terminal, geração e validação de documentação no padrão [Agent Skills](https://agentskills.io/specification). | Terminal de comando |
+| **Google Antigravity (AGY)** | Plataforma de orquestração de desenvolvimento agentic: scaffolding, execução de planos com `/plan` e **revisão independente** do que outro agente implementou. | CLI e IDE nativa |
+| **Claude Code & Agent Skills** | Agente principal de implementação (frontend, backend, testes e documentação das versões), com verificação no navegador real (Playwright) e no Docker. Gera documentação no padrão [Agent Skills](https://agentskills.io/specification). | Extensão do VS Code e terminal |
+| **OpenAI Codex** | **Revisão cruzada e auditoria de segurança** do código gerado por outro agente (ex.: achado de tomada de conta por CPF, registrado em `Segurança.md`). | Extensão do VS Code |
 | **Obsidian CLI & Vault Skills** | Gestão de conhecimento do projeto, geração automatizada de notas de requisitos, story maps e rastreabilidade viva. | Extensão do vault local |
 | **GitHub Copilot / Cursor** | Refatoração inline, completação de boilerplate e sugestão de queries de banco transacionais. | Inline no editor |
 
@@ -118,3 +119,54 @@ Para que os agentes operem com precisão contextual e sem ambiguidades conceitua
 > - **Validação Conceitual de Concorrência:** O desenho de travas distribuídas no Redis, isolamento transacional no PostgreSQL (`SERIALIZABLE` ou `SELECT ... FOR UPDATE`) e partições do Kafka é obrigatoriamente auditado e aprovado pelo time de engenharia.
 > - **Rastreabilidade de Decisões:** Decisões arquiteturais fundamentadas por agentes de IA são registradas em formato de notas técnicas no cofre do Obsidian e mapeadas na [[08 - Matriz de Rastreabilidade e Pacotes de Entrega]].
 
+
+---
+
+## 6. O Processo na Pratica (Pacote 3)
+
+As seções anteriores definem o processo. Esta registra **como ele foi aplicado** na construção do
+BolsoPass, de outubro a novembro de 2026.
+
+### 6.1 Entregas incrementais por versão
+
+O produto foi construído em fatias pequenas. Cada versão tem um README com o escopo, as regras de
+negócio, os testes e as pendências:
+
+| Versão | Escopo |
+| :--- | :--- |
+| [1.0](../Versão%201.0%20-%20Implementação/README.md) | Jornada do cliente: catálogo, mapa de assentos, checkout de 10 min e ingresso com QR dinâmico |
+| [2.0](../Versão%202.0%20-%20Implementação/README.md) | Administração e login único por perfil |
+| [3.0](../Versão%203.0%20-%20Implementação/README.md) | Administração refeita a partir dos mockups |
+| [4.0](../Versão%204.0%20-%20Implementação/README.md) | Bilheteria: leitor de QR no celular (inclusive offline) e venda no balcão |
+| [5.0](../Versão%205.0%20-%20Implementação/versao5.0.md) | Plano de microsserviços conferido com o enunciado; passo 1: Outbox no Kafka real e Testcontainers |
+| [5.1](../Versão%205.1%20-%20Implementação/README.md) | Cadastro público, gestão de usuários e código de ativação |
+
+### 6.2 Ciclo de cada pedido ao agente
+
+1. **Especificação pelo humano:** o integrante descreve a necessidade (muitas vezes com mockups) e
+   as regras de negócio.
+2. **Plano antes do código:** para mudanças grandes, o agente devolve um prompt estruturado, o plano
+   e as decisões em aberto; **nada é alterado antes da aprovação** (Human-in-the-Loop). Exemplo: na
+   versão 5.1, o grupo decidiu "um perfil por conta" e "PIN separado da senha" antes da implementação.
+3. **Implementação com testes:** o código entra junto com testes de integração (backend) e de
+   jornada nas telas reais (frontend).
+4. **Verificação no ambiente real:** além da suíte automatizada, o agente executa a jornada no
+   navegador (Playwright) contra o backend no Docker e confere as mensagens no Kafka (AKHQ).
+5. **Revisão cruzada:** outro agente (Codex ou Antigravity) revisa o que foi feito, e o humano decide
+   o que entra.
+
+### 6.3 Exemplos de revisão cruzada
+
+| Achado | Quem achou | Resultado |
+| :--- | :--- | :--- |
+| Conta criada no balcão podia ser assumida informando só o CPF | Codex (auditoria de segurança) | Código de ativação de 6 dígitos, 24 h, só o hash no banco |
+| O commit dessa correção não compilava e o código não chegava ao cliente | Claude Code | Corrigido; tela do balcão mostra e gera o código |
+| Código do pedido podia repetir com o banco cheio (erro 500 numa compra) | Claude Code, ao rodar a suíte | Sorteio confere se o código já existe |
+| Venda no balcão bloqueada por reserva online pendente do mesmo cliente | Teste manual do grupo | Regra de uma reserva aberta vale só no site |
+
+### 6.4 Números da verificação (03/11/2026)
+
+- **Backend:** 59 testes (integração HTTP, WebSocket real, concorrência, Testcontainers com
+  PostgreSQL e Kafka), **93% das linhas** cobertas (JaCoCo; o build falha abaixo de 70%).
+- **Frontend:** 85 testes (domínio e jornadas completas de cliente, admin e bilheteria nas telas
+  reais), **92% das linhas** cobertas (o comando de cobertura falha abaixo de 70%).

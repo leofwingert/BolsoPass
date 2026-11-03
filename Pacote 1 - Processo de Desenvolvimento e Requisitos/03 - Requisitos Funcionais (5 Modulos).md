@@ -14,7 +14,7 @@ tags:
   - telemetria
   - pacotes/pacote-1
 created: 2026-10-05
-updated: 2026-10-06
+updated: 2026-11-03
 status: pronto
 ---
 
@@ -33,9 +33,9 @@ flowchart TD
 
     M1 -.->|Validacao Stateless de Tokens JWT| M2
     M1 -.->|Validacao Stateless de Tokens JWT| M3
-    M2 -->|Topico: reservas.criadas| M3
+    M2 -->|Topicos: reservas.criadas e reservas.expiradas| M3
     M3 -->|Topico: pedidos.pagos| M4
-    M3 -->|Topico: pedidos.expirados| M2
+    M3 -->|Topicos: pedidos.pagos e pedidos.cancelados| M2
     M2 -.->|Eventos de Dominio| M5
     M3 -.->|Eventos de Dominio| M5
     M4 -.->|Eventos de Dominio| M5
@@ -59,16 +59,26 @@ flowchart TD
 
 ### [RF-02] Controle de Acesso Baseado em Papeis (RBAC Granular)
 - **Por que essa decisão:** A segregação de privilégios previne que clientes acessem métricas operacionais ou que operadores de portaria consigam criar eventos e lotes de ingressos.
-- **Descrição Técnica:** O token JWT transporta a claim de perfis de usuário (`roles`), respeitando quatro perfis estritos:
+- **Descrição Técnica:** O token JWT transporta a claim de perfis de usuário (`roles`), respeitando cinco perfis estritos:
   1. `ROLE_CLIENT`: Navega no catálogo, efetua reservas, realiza checkout e consulta seus próprios ingressos.
   2. `ROLE_ORGANIZER`: Cadastra eventos, configura lotes e mapas de assentos, e monitora relatórios de vendas.
-  3. `ROLE_OPERATOR`: Executa a leitura e validação de ingressos na catraca via leitor de QR Code.
-  4. `ROLE_ADMIN`: Gerencia configurações globais, credenciais de organizadores e telemetria da infraestrutura.
+  3. `ROLE_OPERATOR`: Bilheteria/portaria. Executa a leitura e validação de ingressos na catraca via leitor de QR Code e também vende no balcão.
+  4. `ROLE_SELLER`: Terminal de venda. **Só vende** no balcão; não acessa o leitor de QR, o histórico de leituras nem o modo offline.
+  5. `ROLE_ADMIN`: Gerencia configurações globais, usuários e perfis, e telemetria da infraestrutura. **Não acessa a bilheteria.**
+- **Regras de Negócio:**
+  - **Um perfil por conta.** Promover troca o perfil; quem vira equipe deixa de comprar como cliente (os ingressos já comprados continuam válidos).
+  - Bilheteria e Venda entram com **matrícula + PIN** (PIN guardado separado da senha do e-mail).
 - **Critérios de Aceitação:** Tentativas de acesso a endpoints não autorizados para o papel do usuário retornam status HTTP 403 Forbidden.
 
 ### [RF-03] Auditoria de Credenciais e Gestao Cadastral de Organizadores
-- **Descrição Técnica:** O sistema mantém trilha de auditoria para ações sensíveis de segurança (emissão de tokens, falhas repetidas de autenticação, ativação de novas contas de organizadores).
-- **Regras de Negócio:** Tentativas sucessivas de autenticação incorreta ativam bloqueio temporal com rate-limiting implementado no nível do API Gateway.
+- **Descrição Técnica:** O sistema mantém trilha de auditoria para ações sensíveis de segurança (emissão de tokens, falhas repetidas de autenticação, contas criadas, perfis alterados, códigos de ativação gerados, consultas a dados de compradores).
+- **Gestão cadastral:**
+  - **Cadastro público** (tela de login, "Criar conta"): nome e sobrenome, e-mail, CPF válido, telefone com DDD e senha de 8+ caracteres. Cria **sempre** um Cliente; e-mail e CPF são únicos.
+  - **Página Usuários** (só `ROLE_ADMIN`): lista todos os usuários com busca (nome, e-mail, CPF, matrícula) e filtros (perfil, data de cadastro); cadastra usuários já com o perfil; **promove ou rebaixa** contas (Cliente, Admin, Bilheteria, Venda). Matrícula e PIN gerados aparecem **uma única vez**.
+  - **Conta criada no balcão:** o dono assume a conta no site com o CPF **e um código de ativação** de 6 dígitos entregue no balcão (vale 24 h; só o hash é guardado). Só o CPF não basta.
+- **Regras de Negócio:**
+  - Tentativas sucessivas de autenticação incorreta ativam bloqueio temporal (5 erros = 15 min), com rate-limiting no nível do API Gateway.
+  - O admin não altera o próprio perfil e o sistema nunca fica sem admin; trocar o perfil encerra as sessões abertas da pessoa.
 
 ---
 
@@ -128,6 +138,18 @@ flowchart TD
 
 ### [RF-11] Integracao com Simulador de Gateway Financeiro
 - **Descrição Técnica:** O módulo comunica-se com um simulador de pagamentos via API HTTP, permitindo injetar cenários de aprovação, recusa por saldo insuficiente e simulação de timeout de rede para validação de resiliência.
+- **Formas de pagamento:** cartão de crédito (com parcelas, conforme o lote) e PIX no site; **dinheiro só no balcão** (a compra online com dinheiro é recusada). No ambiente de testes, todo cartão com dados completos é aprovado, exceto o final `0000`, que simula recusa.
+
+### [RF-19] Venda no Balcao da Bilheteria
+- **Por que essa decisão:** Parte do público compra no local do evento, muitas vezes sem conta ou sem celular. A venda no balcão precisa das mesmas garantias da venda online.
+- **Descrição Técnica:** O operador (`ROLE_OPERATOR`) ou o vendedor (`ROLE_SELLER`) compra em nome do cliente: busca pelo **CPF** (vê nome e telefone para confirmar; e-mail só parcial) ou faz um **cadastro rápido**; escolhe lugares vagos do evento; cobra no **crédito, PIX ou dinheiro** (com cálculo de troco) e emite o comprovante.
+- **Regras de Negócio:**
+  - Usa o mesmo fluxo do site: trava atômica, reserva de 10 min, limite por CPF, `Idempotency-Key`, Outbox e ingresso com QR.
+  - A pessoa está presente: **não passa pela sala de espera virtual** e uma reserva online pendente dela **não bloqueia** a venda.
+  - O CPF de cada titular fica vinculado ao ingresso, que aparece depois na conta desse CPF.
+  - O balcão não cria um segundo cadastro para o CPF de alguém da equipe.
+  - Toda venda entra no registro de auditoria do evento, com a matrícula de quem vendeu.
+- **Critérios de Aceitação:** O ingresso vendido no balcão aparece na carteira do titular no site; venda em dinheiro com valor insuficiente não é confirmada.
 
 ---
 
@@ -146,7 +168,9 @@ flowchart TD
   - Metadados do evento, identificador do setor, número do assento e nome do comprador.
   - **Carimbo de Tempo (*Timestamp*):** Data e hora exata da emissão com hash SHA-256 para auditoria de precedência.
   - **QR Code com Assinatura Digital:** Payload contendo `ticket_id`, `event_id`, `seat_id`, `issued_at` e assinatura digital gerada com a chave privada da plataforma (algoritmo ECDSA P-256 ou RSA-PSS).
-- **Critérios de Aceitação:** O operador de portaria consegue validar a autenticidade do QR Code na catraca de forma offline, necessitando apenas da chave pública da plataforma para conferir a assinatura digital.
+- **QR dinâmico:** o conteúdo muda a cada 15 s, então print de tela ou código antigo é recusado na portaria.
+- **Ingresso nominal:** cada ingresso tem nome e CPF do titular. A carteira de um cliente mostra os ingressos que ele comprou **e** os ingressos em que o CPF dele é o titular (acompanhante ou venda no balcão).
+- **Critérios de Aceitação:** O operador de portaria consegue validar a autenticidade do QR Code na catraca de forma offline, necessitando apenas da chave pública da plataforma para conferir a assinatura digital. Ingresso já utilizado é barrado, mostrando horário e portão da primeira entrada.
 
 ### [RF-14] Notificacao Reativa via WebSockets e Despacho Multicanal
 - **Descrição Técnica:** Imediatamente após a compilação do ingresso:

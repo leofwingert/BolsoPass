@@ -10,7 +10,7 @@ tags:
   - personas
   - pacotes/pacote-1
 created: 2026-10-05
-updated: 2026-10-14
+updated: 2026-11-03
 status: pronto
 ---
 
@@ -87,6 +87,17 @@ A venda de ingressos para atrações de escala massiva — como festivais de mú
   - Métricas de telemetria expostas sobre o throughput do Kafka, latência $P_{95}/P_{99}$ e consumo de filas.
   - Automação integral via esteiras de integração contínua (CI/CD) com validação rígida de testes de integração via Testcontainers.
 
+### Persona 5: Juliana (Vendedora do Terminal de Venda)
+- **Perfil:** Atendente do balcão da bilheteria no local do evento, com um celular ou maquininha. Só vende: não lê QR na catraca.
+- **Dores Recorrentes:** Clientes sem cadastro ou sem celular, fila no balcão, venda em dinheiro sem controle de troco, ingresso vendido no balcão que "não aparece" depois para o cliente.
+- **Necessidades no BolsoPass:**
+  - Encontrar o cliente pelo **CPF** (nome e telefone para confirmar) ou fazer um cadastro rápido.
+  - Ver só os lugares vagos e cobrar no **crédito, PIX ou dinheiro** (com troco), com comprovante.
+  - Ingresso vinculado ao **CPF do titular**, que aparece depois na conta do cliente no site; o cliente ativa a conta com um **código de ativação** entregue no balcão.
+
+> Marcos (Persona 3) também vende no balcão; Juliana usa um perfil restrito (`ROLE_SELLER`).
+> Cada conta tem **um perfil só**, dado pela administração.
+
 ---
 
 ## 4. Escopo do Produto e Limites do Sistema
@@ -104,10 +115,12 @@ graph LR
         I6[Emissao de Ingressos em PDF com QR Code Criptografico]
         I7[Notificacoes em Tempo Real via WebSockets]
         I8[Painel Operacional de Telemetria]
+        I9[Bilheteria: Portaria Offline e Venda no Balcao]
+        I10[Cadastro Publico e Gestao de Usuarios]
     end
 
     subgraph Fora do Escopo - Simulacoes Tecnicas
-        O1[Adquirente de Cartao Real: Simulado via Gateway HTTP]
+        O1[Adquirente de Cartao e Maquininha Reais: Pagamento Simulado]
         O2[Gateway de SMS Real: Substituido por Logs Estruturados]
         O3[Catracas Fisicas de Hardware: Simuladas via Software Web]
         O4[Integracao com Sistemas Fiscais Legados]

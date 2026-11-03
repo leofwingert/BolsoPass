@@ -12,7 +12,7 @@ tags:
   - navegacao
   - pacotes/pacote-1
 created: 2026-10-05
-updated: 2026-10-14
+updated: 2026-11-03
 status: pronto
 ---
 
@@ -30,30 +30,38 @@ status: pronto
 
 O mapa de rotas foi concebido para segregar estritamente a jornada de cada papel de usuário definido em `RF-02` de [[03 - Requisitos Funcionais (5 Modulos)]], com guardas de rota (*route guards*) baseadas nas claims do token JWT:
 
+> **Atualizado em 03/11/2026** com as rotas implementadas. Há **um login único**: depois de entrar,
+> cada perfil vai para a sua área. Os mockups de referência ficam em `Mocks-User/` (Cliente, Admin e
+> Portaria).
+
 ```mermaid
 graph TD
-    Home[Rota / - Vitrine Geral de Eventos] --> Login[Rota /auth/login - Autenticacao e Cadastro]
-    Home --> EventDetail[Rota /events/:id - Detalhes e Lotes do Evento]
+    Home[Rota / - Vitrine Geral de Eventos] --> Login[Rota /auth/login - Login unico]
+    Login --> Register[Rota /auth/register - Criar conta: sempre Cliente]
+    Home --> EventDetail[Rota /events/:id - Detalhes, Lotes e Sala de Espera]
     
     subgraph Jornada do Comprador (ROLE_CLIENT)
         EventDetail --> SeatMap[Rota /events/:id/seats - Mapa de Assentos em Tempo Real]
         SeatMap --> Checkout[Rota /checkout/:reservationId - Checkout com Cronometro de 10 min]
-        Checkout --> TicketSuccess[Rota /tickets/:ticketId - Ingresso Confirmado e Download PDF]
-        Login --> MyTickets[Rota /my-tickets - Meus Ingressos Comprados]
+        Checkout --> TicketSuccess[Rota /tickets/:ticketId - Ingresso com QR Dinamico]
+        Login --> Wallet[Rota /wallet - Carteira de Ingressos]
+        Login --> MyOrders[Rota /my-orders - Meus Pedidos]
     end
 
-    subgraph Painel do Organizador (ROLE_ORGANIZER)
-        Login --> OrgDashboard[Rota /organizer/dashboard - Metricas de Vendas em Tempo Real]
-        OrgDashboard --> CreateEvent[Rota /organizer/events/new - Cadastro de Eventos e Lotes]
-        OrgDashboard --> SeatEditor[Rota /organizer/events/:id/map - Configurador de Assentos]
+    subgraph Administracao (ROLE_ORGANIZER e ROLE_ADMIN)
+        Login --> OrgDashboard[Rota /organizer/dashboard - Painel do Produtor]
+        OrgDashboard --> Events[Rota /organizer/events - Meus Eventos]
+        Events --> CreateEvent[Rota /organizer/events/new - Assistente de 5 passos com Mapa de Assentos]
+        Events --> EventPage[Rota /organizer/events/:id - Setores, Lotes, Assentos e Compradores]
+        OrgDashboard --> Users[Rota /organizer/users - Usuarios e Perfis: so ROLE_ADMIN]
     end
 
-    subgraph Operacao de Portaria (ROLE_OPERATOR)
-        Login --> GateScanner[Rota /operator/scanner - Validador de QR Code e Check-in]
-    end
-
-    subgraph Administracao da Plataforma (ROLE_ADMIN)
-        Login --> AdminPanel[Rota /admin/telemetry - Telemetria e Monitoramento do Sistema]
+    subgraph Bilheteria (ROLE_OPERATOR e ROLE_SELLER)
+        Login --> Setup[Rota /operator/setup - Evento e Portao]
+        Setup --> Scan[Rota /operator/scan - Leitor de QR: so ROLE_OPERATOR]
+        Setup --> Sell[Rota /operator/sell - Venda no Balcao]
+        Scan --> History[Rota /operator/history - Historico do Turno]
+        Scan --> Offline[Rota /operator/offline - Modo Contingencia]
     end
 ```
 
@@ -62,13 +70,16 @@ graph TD
 | Rota no SPA | Perfil Autorizado | Protocolo de Comunicação | Guarda de Rota (RBAC) e Tratamento de Erro |
 | :--- | :--- | :--- | :--- |
 | `/` | Público (Todos) | HTTP REST / Cache Redis | Acesso irrestrito com catálogo aquecido. |
-| `/events/:id` | Público (Todos) | HTTP REST / Cache Redis | Exibe lotes, setores e botão para seleção. |
+| `/auth/login`, `/auth/register` | Público | HTTP REST | Cadastro cria sempre Cliente; CPF de conta do balcão pede o código de ativação. |
+| `/events/:id` | Público (Todos) | HTTP REST / Cache Redis | Exibe lotes, setores e a sala de espera virtual (eventos de grande procura). |
 | `/events/:id/seats` | `ROLE_CLIENT` | HTTP + WSS (WebSockets) | Redireciona para `/auth/login` se não autenticado. |
 | `/checkout/:reservationId` | `ROLE_CLIENT` | HTTP REST com `Idempotency-Key` | Bloqueia se o TTL de 10 minutos tiver expirado. |
-| `/tickets/:ticketId` | `ROLE_CLIENT` | HTTP REST + WSS | Valida se o usuário autenticado é o titular do pedido. |
-| `/my-tickets` | `ROLE_CLIENT` | HTTP REST | Lista histórico de ingressos emitidos do comprador. |
-| `/organizer/dashboard` | `ROLE_ORGANIZER`, `ROLE_ADMIN` | HTTP REST + WSS (Stream de Métricas) | Retorna HTTP 403 Forbidden para clientes comuns. |
-| `/operator/scanner` | `ROLE_OPERATOR`, `ROLE_ADMIN` | Leitura Ótica + Cache Offline de Chaves | Funcional mesmo sem conectividade com a internet. |
+| `/tickets/:ticketId` | `ROLE_CLIENT` | HTTP REST + WSS | Comprador ou titular (CPF) do ingresso. |
+| `/wallet`, `/my-orders` | `ROLE_CLIENT` | HTTP REST | Carteira (comprados + titular pelo CPF) e histórico de pedidos. |
+| `/organizer/dashboard`, `/organizer/events/*` | `ROLE_ORGANIZER`, `ROLE_ADMIN` | HTTP REST + WSS | 403 para cliente e bilheteria. Organizador vê só os próprios eventos. |
+| `/organizer/users` | `ROLE_ADMIN` | HTTP REST | 403 para o organizador sem admin. |
+| `/operator/setup`, `/operator/sell` | `ROLE_OPERATOR`, `ROLE_SELLER` | HTTP REST | **O admin não acessa a bilheteria (403).** |
+| `/operator/scan`, `/operator/history`, `/operator/offline` | `ROLE_OPERATOR` | Câmera + cache offline (chave pública e base de ingressos) | Funciona sem internet. O terminal de venda é levado para `/operator/sell`. A câmera exige HTTPS fora do `localhost` (porta 3443 no Docker). |
 
 ---
 
@@ -208,7 +219,7 @@ Apresenta o evento principal, o banner de abertura de vendas com status de tráf
 
 ---
 
-### Tela 5: Interface de Portaria e Scanner do Operador (`/operator/scanner`)
+### Tela 5: Interface de Portaria e Scanner do Operador (`/operator/scan`)
 Permite ao operador de catraca realizar a leitura de ingressos com validação de assinatura digital em milissegundos, operando com total autonomia caso a internet do estádio oscile:
 
 ```text

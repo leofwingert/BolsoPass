@@ -12,7 +12,7 @@ tags:
   - regras-de-negocio
   - pacotes/pacote-1
 created: 2026-10-05
-updated: 2026-10-06
+updated: 2026-11-03
 status: pronto
 ---
 
@@ -83,6 +83,34 @@ stateDiagram-v2
 ### Invariantes de Estoque
 1. **Invariante de Exclusão Mútua:** Em nenhum momento mais de uma thread pode obter sucesso ao transicionar o assento de `DISPONIVEL` para `BLOQUEADO_TEMPORARIO`.
 2. **Invariante de Conservação:** A soma de assentos disponíveis, bloqueados temporariamente e vendidos deve ser estritamente igual à capacidade do lote cadastrado.
+
+### Reserva e pedido por evento
+- O inventário cria a reserva, gera o id do pedido e publica `reservas.criadas`; o módulo de Pedidos
+  **consome** esse evento e cria o pedido em `RESERVADO`. Assim o evento `AssentoBloqueadoEvent` da
+  tabela de transições chega pelo Kafka, e não por chamada síncrona.
+- A expiração segue o mesmo caminho: `reservas.expiradas` leva o pedido a `EXPIRADO`.
+- Um pedido `RESERVADO` **não é cancelado à força** por outro fluxo: termina pago ou expirado.
+
+---
+
+## 2.1 Regras de Negocio Incorporadas na Implementacao
+
+Regras que surgiram dos mockups e dos testes do grupo (versões 4.0 a 5.1), validadas por testes automatizados:
+
+| Regra | Onde vale |
+| :--- | :--- |
+| **Uma reserva aberta por cliente e evento** no site (evita monopolizar assentos); no balcão não se aplica | Inventário |
+| No balcão a pessoa está presente: **sem sala de espera virtual** | Inventário |
+| **Dinheiro só no balcão**; a compra online com dinheiro é recusada | Pedidos |
+| Cartão final `0000` simula recusa: o comprador tenta de novo (nova `Idempotency-Key`) ou desiste e o assento volta à venda | Pedidos |
+| Código do pedido (`PLS-12345-BR`) é único; o id do ingresso (`TK-12345-A15`) usa os mesmos dígitos | Pedidos |
+| **Ingresso nominal:** nome e CPF de cada titular; sem CPF repetido no mesmo pedido; limite de ingressos por CPF definido no lote | Pedidos e Despacho |
+| A carteira mostra os ingressos comprados **e** os ingressos em que o CPF da conta é o titular | Despacho |
+| Portaria: vale a **primeira leitura**, mesmo feita offline e sincronizada depois; QR antigo (mais de ~30 s) é recusado | Despacho |
+| **Um perfil por conta**; cadastro público cria sempre Cliente; só o Admin promove ou rebaixa | IAM |
+| Bilheteria e Venda entram com **matrícula + PIN**; o PIN é guardado separado da senha | IAM |
+| Conta criada no balcão só é assumida no site com o **código de ativação** (6 dígitos, 24 h, só o hash guardado) | IAM |
+| O admin não altera o próprio perfil; o sistema nunca fica sem admin | IAM |
 
 ---
 
