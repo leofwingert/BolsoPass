@@ -10,7 +10,7 @@ import { maskPhone } from '@/lib/format';
 const MIN_PASSWORD = 8;
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-type Form = { name: string; email: string; cpf: string; phone: string; password: string; confirm: string; terms: boolean };
+type Form = { name: string; email: string; cpf: string; phone: string; password: string; confirm: string; activationCode: string; terms: boolean };
 type Issues = Partial<Record<keyof Form, string>>;
 
 function validate(f: Form): Issues {
@@ -34,7 +34,7 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from;
-  const [form, setForm] = useState<Form>({ name: '', email: '', cpf: '', phone: '', password: '', confirm: '', terms: false });
+  const [form, setForm] = useState<Form>({ name: '', email: '', cpf: '', phone: '', password: '', confirm: '', activationCode: '', terms: false });
   const [issues, setIssues] = useState<Issues>({});
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
@@ -56,6 +56,7 @@ export default function RegisterPage() {
         phone: form.phone,
         password: form.password,
         acceptTerms: form.terms,
+        activationCode: form.activationCode.trim() || undefined,
       });
       // Cliente: volta para onde estava (ex.: mapa de assentos) ou vai ao catálogo.
       navigate(from ?? '/', { replace: true });
@@ -90,6 +91,9 @@ export default function RegisterPage() {
               <input className={inputClass} inputMode="tel" value={form.phone} onChange={(e) => set('phone', maskPhone(e.target.value))} autoComplete="tel" placeholder="(11) 99999-9999" />
             </Field>
           </div>
+          <Field label="Código de ativação (se recebido no balcão)" hint="Necessário para vincular uma compra feita na bilheteria à sua conta.">
+            <input className={inputClass} inputMode="numeric" value={form.activationCode} onChange={(e) => set('activationCode', e.target.value)} autoComplete="one-time-code" />
+          </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Senha" error={issues.password} hint={issues.password ? undefined : `Mínimo de ${MIN_PASSWORD} caracteres`}>
               <input className={inputClass} type="password" value={form.password} onChange={(e) => set('password', e.target.value)} autoComplete="new-password" />

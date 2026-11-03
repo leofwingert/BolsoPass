@@ -401,6 +401,7 @@ export interface RegisterInput {
   phone: string;
   password: string;
   acceptTerms: boolean;
+  activationCode?: string;
 }
 
 /** Um perfil por conta (a administração troca o perfil ao promover). */

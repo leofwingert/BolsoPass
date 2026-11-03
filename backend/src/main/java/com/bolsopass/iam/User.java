@@ -89,7 +89,7 @@ public class User {
   }
 
   public boolean canBeClaimedWith(String activationCode, org.springframework.security.crypto.password.PasswordEncoder encoder) {
-    return counterAccount
+    return Boolean.TRUE.equals(counterAccount)
         && activationCode != null
         && activationCodeExpiresAt != null
         && activationCodeExpiresAt.isAfter(Instant.now())

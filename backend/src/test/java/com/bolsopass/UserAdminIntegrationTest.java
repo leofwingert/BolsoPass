@@ -116,8 +116,12 @@ class UserAdminIntegrationTest {
             .andExpect(status().isCreated()))
         .path("id").asText();
 
+    JsonNode customer = body(send(post("/api/v1/operator/box-office/customers"),
+                Map.of("cpf", "864.209.753-10"), op)
+            .andExpect(status().isOk()));
     JsonNode session = body(send(post("/api/v1/auth/register"),
-                signup("Rui Barbosa Lima", "rui@teste.io", "86420975310", "senhaforte"), null)
+                signup("Rui Barbosa Lima", "rui@teste.io", "86420975310", "senhaforte",
+                    customer.path("activationCode").asText()), null)
             .andExpect(status().isCreated()));
     // Mesma conta (os ingressos comprados no balcão continuam nela), agora com e-mail e senha.
     assertThat(session.path("user").path("id").asText()).isEqualTo(counterId);
@@ -134,11 +138,9 @@ class UserAdminIntegrationTest {
             "x", Set.of(Role.ROLE_CLIENT))
         .withContact("314.159.265-90", "(51) 97777-0000"));
 
-    JsonNode session = body(send(post("/api/v1/auth/register"),
+    send(post("/api/v1/auth/register"),
                 signup("Ivo Pereira Lopes", "ivo@teste.io", "314.159.265-90", "senhaforte"), null)
-            .andExpect(status().isCreated()));
-    assertThat(session.path("user").path("id").asText()).isEqualTo("u-legado-balcao");
-    login("ivo@teste.io", "senhaforte");
+            .andExpect(status().isConflict());
   }
 
   @Test
