@@ -51,7 +51,7 @@ flowchart LR
 
 ### 2.4 Testes de integração (Testcontainers)
 
-- Spins up reais de **PostgreSQL 16**, **Kafka 3.7 (KRaft)** e **Redis 7** por módulo.
+- Spins up reais de **PostgreSQL 16**, **Kafka 3.8 (KRaft)** e **Redis 7** por módulo.
 - Rodam contra o cluster real do GitHub-hosted runner (Linux, Docker-in-Docker).
 - Timeout agressivo por teste (30s) para evitar flake.
 - Comando: `./mvnw -Pit verify`.

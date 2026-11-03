@@ -14,7 +14,7 @@
 | :--- | :--- |
 | Funcionalidades para os 3 perfis (cliente, admin, bilheteria) | ✅ Funcionando de ponta a ponta, front + back |
 | Regras de negócio críticas (zero overselling, reserva de 10 min, máquina de estados, idempotência, outbox, QR assinado) | ✅ Implementadas e testadas |
-| Documentação dos Pacotes 1 e 2 | ✅ Entregue · ⚠️ precisa ser atualizada para refletir o código |
+| Documentação dos Pacotes 1 e 2 | ✅ Entregue · Pacote 2 revisado em 03/11 (bilheteria, tópicos em português, reserva por evento, versões) · ⚠️ Pacote 1 ainda a revisar |
 | **Infraestrutura exigida** (microsserviços separados, Keycloak, Kafka, Redis) | ❌ Ainda não |
 | **DevOps exigido** (Testcontainers, docker-compose completo, CI no GitHub Actions) | ❌ Ainda não |
 | Versionamento | ⚠️ **Nada do código foi commitado**; não existe a branch `develop` |
@@ -92,7 +92,7 @@ do Kafka.
 | Dual-Write Dilemma tratado | ✅ | Transactional Outbox |
 | Idempotência no **consumo** | ❌ | Não há consumidores ainda; falta a tabela `processed_messages` |
 | Processo de desenvolvimento com IA documentado | ✅ | Pacote 1, doc 01 |
-| C4 níveis 1, 2 e 3 | ✅ | Pacote 2, doc 01 · ⚠️ descreve a arquitetura-alvo, não a atual |
+| C4 níveis 1, 2 e 3 | ✅ | Pacote 2, doc 01: arquitetura-alvo, com a tabela "estado atual" no README do Pacote 2 |
 
 ---
 

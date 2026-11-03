@@ -19,13 +19,23 @@
 
 | Entidade | Atributos principais | Observações |
 |---|---|---|
-| **UserProfile** | `id` (PK), `keycloak_sub` (UNIQUE), `cpf`, `nome`, `telefone`, `email` | Keycloak é a fonte de verdade da identidade; aqui mora o perfil estendido |
+| **UserProfile** | `id` (PK), `keycloak_sub` (UNIQUE), `cpf` (UNIQUE), `nome`, `telefone`, `email` (UNIQUE), `perfil`, `created_at` | Keycloak é a fonte de verdade da identidade; aqui mora o perfil estendido. **Um perfil por conta**: `CLIENTE`, `ADMIN`, `OPERADOR` (bilheteria) ou `VENDEDOR` (terminal de venda) |
+| **StaffCredential** | `user_id` (PK, FK UserProfile), `matricula` (UNIQUE, `OP-xxxxx` / `VD-xxxxx`), `pin_hash` | Só para Operador e Vendedor. PIN separado da senha do e-mail; some ao rebaixar a conta |
+| **CounterActivation** | `user_id` (PK, FK UserProfile), `activation_code_hash`, `expires_at` | Conta criada no balcão sem senha. O dono a assume no site com CPF + **código de 6 dígitos** (24 h); só o hash é guardado |
 | **OrganizerAccount** | `id` (PK), `user_id` (FK UserProfile), `razao_social`, `cnpj`, `status` | Status: `PENDENTE_VALIDACAO`, `ATIVO`, `SUSPENSO` |
-| **AuditEvent** | `id` (PK), `user_id`, `action`, `resource`, `payload` (JSONB), `occurred_at` | Append-only; particionado por mês |
+| **AuditEvent** | `id` (PK), `user_id`, `action`, `resource`, `payload` (JSONB), `occurred_at` | Append-only; particionado por mês. Registra contas criadas, perfis alterados, códigos de ativação gerados e consultas a dados de compradores (LGPD) |
 
 ### Relações
 
 - `UserProfile 1..1 — 0..1 OrganizerAccount` (um usuário pode se tornar organizador).
+- `UserProfile 1..1 — 0..1 StaffCredential` (só equipe de bilheteria).
+- `UserProfile 1..1 — 0..1 CounterActivation` (só conta do balcão ainda não ativada).
+
+### Invariantes
+
+- Cadastro público cria sempre `perfil = CLIENTE`; os demais perfis só pela administração.
+- O admin não muda o próprio perfil e o sistema nunca fica sem admin.
+- Um CPF, uma conta: o balcão não cria um segundo cadastro para o CPF de alguém da equipe.
 
 ---
 
@@ -74,7 +84,8 @@
 
 - **UNIQUE** sobre `(seat_id)` em `SeatLock` enquanto `expires_at > NOW()` — barreira final contra sobre-venda além do lock Redis.
 - `Reservation.expires_at = created_at + INTERVAL '10 minutes'`.
-- `Seat.status = 'VENDIDO'` só por consumo de evento `payment.confirmed`.
+- `Seat.status = 'VENDIDO'` só por consumo de evento `pedidos.pagos`.
+- Uma reserva aberta por cliente e evento **no site**; no balcão (operador presente) a regra não se aplica e não há sala de espera.
 
 ---
 
@@ -84,8 +95,8 @@
 
 | Entidade | Atributos principais |
 |---|---|
-| **Order** | `id` (PK), `user_id`, `event_id`, `reservation_id`, `total_amount`, `status`, `state_updated_at` |
-| **OrderItem** | `id` (PK), `order_id` (FK), `seat_id`, `lot_id`, `unit_price` |
+| **Order** | `id` (PK, nasce na reserva), `code` (UNIQUE, `PLS-12345-BR`), `user_id`, `event_id`, `reservation_id`, `total_amount`, `status`, `payment_method` (`CREDIT_CARD`, `PIX`, `CASH`), `installments`, `channel` (`ONLINE`/`BALCAO`), `state_updated_at` |
+| **OrderItem** | `id` (PK), `order_id` (FK), `seat_id`, `lot_id`, `unit_price`, `holder_name`, `holder_cpf` |
 | **IdempotencyKey** | `key` (PK), `user_id`, `request_hash`, `response_body` (JSONB), `created_at`, `expires_at` |
 | **OutboxMessage** | `id` (PK), `aggregate_type`, `aggregate_id`, `topic`, `payload` (JSONB), `created_at`, `published_at` (nullable) |
 | **ProcessedMessage** | `message_id` (PK), `consumer_group`, `processed_at` |
@@ -94,12 +105,17 @@
 
 ```
 CRIADO ──▶ RESERVADO ──▶ AGUARDANDO_PAGAMENTO ──▶ PAGO
-   │           │                   │                  
-   └───────────┴───────────────────┴──▶ EXPIRADO / CANCELADO
+   │           │                   │   ▲
+   │           │                   ▼   │ (nova tentativa)
+   │           │               RECUSADO ──▶ CANCELADO (desistência)
+   └───────────┴───────────────────┴──▶ EXPIRADO (10 min)
 ```
 
 ### Invariantes
 
+- O pedido é criado ao consumir `reservas.criadas` (com o id gerado na reserva) e vai a `EXPIRADO` ao consumir `reservas.expiradas`.
+- `payment_method = 'CASH'` só no canal `BALCAO`.
+- Um pedido `RESERVADO` não é cancelado à força: termina pago ou expirado (doc 06 do Pacote 1).
 - `IdempotencyKey.expires_at = created_at + INTERVAL '24 hours'`.
 - Toda transição de `Order.status` grava `OutboxMessage` **na mesma transação**.
 - `OutboxMessage` nunca é deletada antes de `published_at IS NOT NULL + 7 dias` (auditoria).
@@ -112,14 +128,15 @@ CRIADO ──▶ RESERVADO ──▶ AGUARDANDO_PAGAMENTO ──▶ PAGO
 
 | Entidade | Atributos principais |
 |---|---|
-| **Ticket** | `id` (PK), `order_id` (FK lógica), `seat_id`, `event_id`, `qr_payload`, `qr_signature`, `pdf_path`, `issued_at` |
-| **TicketScan** | `id` (PK), `ticket_id` (FK), `operator_id`, `scanned_at`, `result` (`AUTORIZADO`/`DUPLICATA`/`INVALIDO`), `offline_sync` (bool) |
+| **Ticket** | `id` (PK, `TK-12345-A15`), `order_id` (FK lógica), `buyer_id`, `holder_name`, `holder_cpf`, `seat_id`, `event_id`, `qr_payload`, `qr_signature`, `pdf_path`, `issued_at` |
+| **TicketScan** | `id` (PK, gerado no aparelho), `ticket_id` (FK), `operator_id`, `gate`, `scanned_at`, `result` (`AUTORIZADO`/`DUPLICATA`/`INVALIDO`), `offline_sync` (bool) |
 | **ProcessedMessage** | `message_id` (PK), `consumer_group`, `processed_at` |
 
 ### Invariantes
 
 - `qr_signature` = ECDSA P-256 sobre `qr_payload` (hex-encoded).
-- Primeiro `TicketScan` com `result = AUTORIZADO` bloqueia os seguintes (`DUPLICATA`).
+- Primeiro `TicketScan` com `result = AUTORIZADO` bloqueia os seguintes (`DUPLICATA`); vale a primeira leitura, mesmo se sincronizada depois (offline).
+- A carteira de um cliente mostra os ingressos que ele comprou **e** os ingressos em que o CPF dele é o `holder_cpf` (venda no balcão ou acompanhante).
 
 ---
 
@@ -141,6 +158,9 @@ CRIADO ──▶ RESERVADO ──▶ AGUARDANDO_PAGAMENTO ──▶ PAGO
 erDiagram
   USER ||--o{ ORDER : "faz"
   USER ||--o{ RESERVATION : "possui"
+  USER ||--o| STAFF_CREDENTIAL : "bilheteria"
+  USER ||--o| COUNTER_ACTIVATION : "conta do balcão"
+  USER ||--o{ TICKET : "é titular (CPF)"
   EVENT ||--o{ LOT : "oferece"
   EVENT ||--o{ SEAT : "tem"
   RESERVATION ||--|{ SEAT_LOCK : "trava"
