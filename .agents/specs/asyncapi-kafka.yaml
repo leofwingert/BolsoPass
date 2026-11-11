@@ -60,3 +60,40 @@ channels:
             paid_at:
               type: string
               format: date-time
+
+  checkin.realizado:
+    description: >
+      Publicado via Transactional Outbox quando a portaria libera a entrada, na mesma transação que
+      marca o ingresso como utilizado. Mesmo contrato para o QR Code e o reconhecimento facial
+      (campo metodo). Chave de particionamento: ticketId.
+    publish:
+      message:
+        name: CheckinRealizadoEvent
+        payload:
+          type: object
+          required:
+            - ticketId
+            - eventId
+            - metodo
+            - timestamp
+            - operadorId
+          properties:
+            ticketId:
+              type: string
+              example: TK-55492-A02
+            eventId:
+              type: string
+              example: evt-neon
+            metodo:
+              type: string
+              enum: [QR, FACIAL]
+            timestamp:
+              type: string
+              format: date-time
+              description: Momento da entrada (no QR offline, o horário da leitura no aparelho).
+            operadorId:
+              type: string
+              description: Id do usuário da bilheteria que fez a leitura.
+            portao:
+              type: string
+              example: Portão 01

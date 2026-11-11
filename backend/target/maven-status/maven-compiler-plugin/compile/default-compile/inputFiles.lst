@@ -14,6 +14,7 @@ C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bo
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\iam\AuthController.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\iam\AuthService.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\iam\CurrentUser.java
+C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\iam\JwksController.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\iam\JwtKeys.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\iam\RefreshToken.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\iam\RefreshTokenRepository.java
@@ -30,6 +31,7 @@ C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bo
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\inventory\ReservationService.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\inventory\Seat.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\inventory\SeatRepository.java
+C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\management\CheckinService.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\management\ManagementController.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\orders\CheckoutService.java
 C:\Users\lucas\OneDrive\Documentos\GitHub\BolsoPass\backend\src\main\java\com\bolsopass\orders\Cpf.java

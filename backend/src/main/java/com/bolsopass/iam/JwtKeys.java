@@ -31,8 +31,14 @@ public class JwtKeys {
     this.rsaKey =
         new RSAKey.Builder((RSAPublicKey) pair.getPublic())
             .privateKey((RSAPrivateKey) pair.getPrivate())
-            .keyID("bolsopass-dev")
+            // kid único por subida: outros serviços (JWKS) percebem a chave nova e buscam de novo.
+            .keyID("bolsopass-" + Long.toString(System.currentTimeMillis(), 36))
             .build();
+  }
+
+  /** Só a parte pública, para o endpoint JWKS (os outros serviços validam o token com ela). */
+  public JWKSet publicJwkSet() {
+    return new JWKSet(rsaKey.toPublicJWK());
   }
 
   @Bean

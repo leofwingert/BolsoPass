@@ -1,0 +1,76 @@
+spring:
+  application:
+    name: facial-checkin-service
+  profiles:
+    # dev = H2 em memória (roda sem Docker). "postgres" no docker-compose.
+    default: dev
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  servlet:
+    multipart:
+      # Rekognition aceita imagens de até 5 MB.
+      max-file-size: 5MB
+      max-request-size: 6MB
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Chave pública dos tokens (hoje o backend; com o Keycloak, o JWKS do realm).
+          jwk-set-uri: ${FACIAL_JWKS_URI:http://localhost:8080/api/v1/auth/jwks}
+
+server:
+  port: ${PORT:8090}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+facial:
+  # Versão do termo de uso de dados biométricos que o usuário precisa aceitar (LGPD art. 11).
+  consent-term-version: biometria-v1
+  # Similaridade mínima para considerar o mesmo rosto (%).
+  similarity-threshold: 90
+  # Dias depois do início do evento em que os rostos do evento são apagados (retenção mínima).
+  retention-days: 7
+  ticketing:
+    # Backend dono dos ingressos e do registro da entrada (fonte única da verdade).
+    base-url: ${FACIAL_TICKETING_URL:http://localhost:8080/api/v1}
+  rekognition:
+    # simulated = sem AWS (testes e desenvolvimento); aws = AWS Rekognition real.
+    mode: ${FACIAL_REKOGNITION_MODE:simulated}
+    region: ${AWS_REGION:us-east-1}
+    collection-prefix: bolsopass-
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:h2:mem:facial;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+---
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/bolsopass}
+    username: ${DB_USER:bolsopass}
+    password: ${DB_PASSWORD:bolsopass}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      # Banco por serviço: schema próprio no mesmo PostgreSQL (decisão do C4).
+      hibernate.default_schema: facial
+      hibernate.hbm2ddl.create_namespaces: true

@@ -106,6 +106,30 @@ services:
     ports:
       - "8080:8080"
 
+  # Check-in por reconhecimento facial (AWS Rekognition). Sem credenciais AWS, roda o simulado.
+  # Para o real: FACIAL_REKOGNITION_MODE=aws AWS_REGION=... AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=...
+  facial-checkin:
+    build:
+      context: services/facial-checkin-service
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      DB_URL: jdbc:postgresql://postgres:5432/bolsopass
+      DB_USER: bolsopass
+      DB_PASSWORD: bolsopass
+      FACIAL_JWKS_URI: http://backend:8080/api/v1/auth/jwks
+      FACIAL_TICKETING_URL: http://backend:8080/api/v1
+      FACIAL_REKOGNITION_MODE: ${FACIAL_REKOGNITION_MODE:-simulated}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    ports:
+      - "8090:8090"
+
   frontend:
     build:
       context: .
@@ -115,6 +139,7 @@ services:
       HOST_IP: ${HOST_IP:-}
     depends_on:
       - backend
+      - facial-checkin
     ports:
       - "3000:3000"
       # HTTPS para o celular: a câmera do leitor de QR só abre em HTTPS fora do localhost.

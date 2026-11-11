@@ -19,6 +19,8 @@ public class OutboxWriter {
   public static final String RESERVAS_EXPIRADAS = "reservas.expiradas";
   public static final String PEDIDOS_PAGOS = "pedidos.pagos";
   public static final String PEDIDOS_CANCELADOS = "pedidos.cancelados";
+  /** Entrada liberada na portaria (QR ou reconhecimento facial), mesmo contrato para os dois métodos. */
+  public static final String CHECKIN_REALIZADO = "checkin.realizado";
 
   private final OutboxRepository repo;
   private final ObjectMapper json;

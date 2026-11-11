@@ -100,6 +100,23 @@ public class TicketService {
     return new QrView(signer.sign(t, window), window);
   }
 
+  /**
+   * Dados para o cadastro facial (facial-checkin-service). {@code holder} = a conta é a titular
+   * (CPF da conta = CPF do ingresso): pela LGPD, só a própria pessoa consente com o uso do rosto.
+   */
+  public record BiometricEligibility(
+      String ticketId, String eventId, String eventTitle, Instant eventStartsAt, String holderName, boolean holder,
+      Ticket.Status status) {}
+
+  @Transactional(readOnly = true)
+  public BiometricEligibility eligibility(String userId, String ticketId) {
+    Ticket t = owned(userId, ticketId);
+    String cpf = holderCpf(userId);
+    var event = catalog.find(t.getEventId());
+    return new BiometricEligibility(t.getId(), t.getEventId(), event.getTitle(), event.getStartsAt(),
+        t.getHolderName(), cpf != null && cpf.equals(t.getHolderCpf()), t.getStatus());
+  }
+
   private Ticket owned(String userId, String ticketId) {
     Ticket t = tickets.findById(ticketId).orElseThrow(() -> ApiException.notFound("Ingresso"));
     // Doc 07: só quem comprou ou a pessoa titular (CPF vinculado ao ingresso) vê o ingresso.

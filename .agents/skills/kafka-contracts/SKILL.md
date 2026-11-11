@@ -15,6 +15,7 @@ Este documento orienta os agentes sobre os topicos do Apache Kafka e a semantica
 | `reservas.expiradas` | `event_id` | `ReservaExpiradaEvent` | Modulo Inventario | Modulo Pedidos, Frontend (WS) |
 | `pedidos.pagos` | `order_id` | `PedidoPagoEvent` | Modulo Checkout (Outbox) | Modulo Despacho (Ingressos) |
 | `pedidos.cancelados` | `order_id` | `PedidoCanceladoEvent` | Modulo Checkout (Outbox) | Modulo Inventario |
+| `checkin.realizado` | `ticketId` | `CheckinRealizadoEvent` | Modulo Despacho (Outbox, na mesma transacao da entrada) | Telemetria (entradas no painel) |
 | `telemetria.eventos` | `session_id` | `UserNavigationEvent` | Gateway / Servicos | Modulo Telemetria |
 
 ## Semantica de Entrega e Idempotencia

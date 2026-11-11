@@ -3,8 +3,7 @@ package com.bolsopass.management;
 import com.bolsopass.catalog.CatalogService;
 import com.bolsopass.catalog.Event;
 import com.bolsopass.catalog.EventRepository;
-import com.bolsopass.inventory.Seat;
-import com.bolsopass.inventory.SeatRepository;
+import com.bolsopass.iam.CurrentUser;
 import com.bolsopass.ticketing.QrSigner;
 import com.bolsopass.ticketing.Ticket;
 import com.bolsopass.ticketing.TicketRepository;
@@ -38,17 +37,32 @@ public class ManagementController {
 
   private final EventRepository events;
   private final CatalogService catalog;
-  private final SeatRepository seats;
   private final TicketRepository tickets;
   private final QrSigner signer;
+  private final CheckinService checkins;
 
   public ManagementController(
-      EventRepository events, CatalogService catalog, SeatRepository seats, TicketRepository tickets, QrSigner signer) {
+      EventRepository events, CatalogService catalog, TicketRepository tickets, QrSigner signer,
+      CheckinService checkins) {
     this.events = events;
     this.catalog = catalog;
-    this.seats = seats;
     this.tickets = tickets;
     this.signer = signer;
+    this.checkins = checkins;
+  }
+
+  public record CheckinRequest(String ticketId, CheckinService.Method method, String gate) {}
+
+  /**
+   * Entrada online, decidida na hora pelo servidor. Usada pelo facial-checkin-service (método
+   * FACIAL), que repassa o token do operador. Mesma regra e mesmo evento do QR.
+   */
+  @PostMapping("/events/{eventId}/checkins")
+  @Transactional
+  CheckinService.Result checkin(@PathVariable String eventId, @RequestBody CheckinRequest body) {
+    catalog.find(eventId);
+    CheckinService.Method method = body.method() == null ? CheckinService.Method.QR : body.method();
+    return checkins.register(eventId, body.ticketId(), method, body.gate(), CurrentUser.id(), Instant.now());
   }
 
   // Lista de eventos também serve ao terminal de venda (escolher o evento a vender).
@@ -101,14 +115,10 @@ public class ManagementController {
     int duplicates = 0;
     for (Map<String, Object> scan : body.getOrDefault("scans", List.of())) {
       if (!"VALIDO".equals(scan.get("status")) || !(scan.get("ticketId") instanceof String ticketId)) continue;
-      Ticket t = tickets.findById(ticketId).orElse(null);
-      if (t == null || !t.getEventId().equals(eventId)) continue;
-      if (t.checkIn(parse(scan.get("at")), scan.get("gate") instanceof String g ? g : "")) {
-        seats.findById(t.getSeatId()).ifPresent(Seat::markUsed);
-        accepted++;
-      } else {
-        duplicates++;
-      }
+      CheckinService.Result r = checkins.register(eventId, ticketId, CheckinService.Method.QR,
+          scan.get("gate") instanceof String g ? g : "", CurrentUser.id(), parse(scan.get("at")));
+      if (r.status() == CheckinService.Status.LIBERADO) accepted++;
+      else if (r.reason() == CheckinService.Reason.INGRESSO_JA_UTILIZADO) duplicates++;
     }
     return Map.of("accepted", accepted, "duplicates", duplicates);
   }

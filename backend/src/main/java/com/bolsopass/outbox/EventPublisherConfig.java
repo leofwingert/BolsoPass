@@ -39,7 +39,8 @@ public class EventPublisherConfig {
         TopicBuilder.name(OutboxWriter.RESERVAS_CRIADAS).partitions(12).replicas(replicas).build(),
         TopicBuilder.name(OutboxWriter.RESERVAS_EXPIRADAS).partitions(12).replicas(replicas).build(),
         TopicBuilder.name(OutboxWriter.PEDIDOS_PAGOS).partitions(12).replicas(replicas).build(),
-        TopicBuilder.name(OutboxWriter.PEDIDOS_CANCELADOS).partitions(6).replicas(replicas).build());
+        TopicBuilder.name(OutboxWriter.PEDIDOS_CANCELADOS).partitions(6).replicas(replicas).build(),
+        TopicBuilder.name(OutboxWriter.CHECKIN_REALIZADO).partitions(6).replicas(replicas).build());
   }
 
   @Bean

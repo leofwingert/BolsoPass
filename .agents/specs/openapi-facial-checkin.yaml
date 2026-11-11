@@ -1,0 +1,128 @@
+openapi: 3.0.3
+info:
+  title: BolsoPass - facial-checkin-service
+  version: 1.0.0
+  description: >
+    Check-in por reconhecimento facial (AWS Rekognition). Autenticação por JWT (o mesmo do
+    backend; JWKS em /api/v1/auth/jwks). A imagem só trafega na requisição e nunca é gravada.
+servers:
+  - url: /api/v1/facial
+security:
+  - bearerAuth: []
+paths:
+  /consent:
+    get:
+      summary: Estado do consentimento do usuário (ROLE_CLIENT)
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Consent' } } } }
+    post:
+      summary: Aceitar o termo de uso de dados biométricos (versão atual)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [termVersion, accepted]
+              properties:
+                termVersion: { type: string, example: biometria-v1 }
+                accepted: { type: boolean, example: true }
+      responses:
+        '200': { description: Aceito, content: { application/json: { schema: { $ref: '#/components/schemas/Consent' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { description: Versão do termo desatualizada, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    delete:
+      summary: Revogar o consentimento (apaga todos os rostos do usuário com DeleteFaces)
+      responses:
+        '200': { description: Revogado, content: { application/json: { schema: { $ref: '#/components/schemas/Consent' } } } }
+  /enrollments:
+    get:
+      summary: Rostos cadastrados do usuário
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Enrollment' } }
+    post:
+      summary: Cadastrar o rosto para um ingresso (só o titular, com consentimento ativo)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [ticketId, image]
+              properties:
+                ticketId: { type: string, example: TK-55492-A02 }
+                image: { type: string, format: binary, description: 'JPEG ou PNG, até 5 MB' }
+      responses:
+        '201': { description: Cadastrado, content: { application/json: { schema: { $ref: '#/components/schemas/Enrollment' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { description: 'Sem consentimento, ou não é o titular do ingresso', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: 'Ingresso não ativo ou evento já aconteceu', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: 'Nenhum rosto, mais de um rosto ou rosto não aproveitável', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /enrollments/{ticketId}:
+    delete:
+      summary: Remover o rosto de um ingresso
+      parameters:
+        - { name: ticketId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: Removido }
+        '404': { $ref: '#/components/responses/Error' }
+  /events/{eventId}/checkins:
+    post:
+      summary: Leitura facial na portaria (ROLE_OPERATOR)
+      parameters:
+        - { name: eventId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                gate: { type: string, example: Portão 01 }
+                image: { type: string, format: binary }
+      responses:
+        '200': { description: LIBERADO ou NEGADO, content: { application/json: { schema: { $ref: '#/components/schemas/CheckinOutcome' } } } }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { description: 'Rekognition ou backend fora do ar: usar o QR Code', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  responses:
+    Error:
+      description: Erro de regra de negócio
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  schemas:
+    Error:
+      type: object
+      properties: { message: { type: string } }
+    Consent:
+      type: object
+      properties:
+        active: { type: boolean }
+        termVersion: { type: string, nullable: true }
+        acceptedAt: { type: string, format: date-time, nullable: true }
+        revokedAt: { type: string, format: date-time, nullable: true }
+        currentTermVersion: { type: string }
+    Enrollment:
+      type: object
+      properties:
+        ticketId: { type: string }
+        eventId: { type: string }
+        enrolledAt: { type: string, format: date-time }
+    CheckinOutcome:
+      type: object
+      properties:
+        status: { type: string, enum: [LIBERADO, NEGADO] }
+        reason: { type: string, nullable: true, enum: [ROSTO_NAO_RECONHECIDO, INGRESSO_JA_UTILIZADO, INGRESSO_INVALIDO] }
+        ticketId: { type: string, nullable: true }
+        holderName: { type: string, nullable: true }
+        seatLabel: { type: string, nullable: true }
+        sectorName: { type: string, nullable: true }
+        similarity: { type: number, nullable: true }
+        usedAt: { type: string, format: date-time, nullable: true }
+        usedGate: { type: string, nullable: true }

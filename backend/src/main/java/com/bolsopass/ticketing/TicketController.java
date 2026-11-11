@@ -34,4 +34,10 @@ public class TicketController {
   QrView qr(@PathVariable String id) {
     return tickets.qr(CurrentUser.id(), id);
   }
+
+  /** Usado pelo facial-checkin-service antes de indexar o rosto (só o titular pode). */
+  @GetMapping("/{id}/biometric-eligibility")
+  TicketService.BiometricEligibility biometricEligibility(@PathVariable String id) {
+    return tickets.eligibility(CurrentUser.id(), id);
+  }
 }
