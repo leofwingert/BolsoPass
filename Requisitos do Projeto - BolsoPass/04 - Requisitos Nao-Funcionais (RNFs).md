@@ -13,7 +13,7 @@ tags:
   - arquitetura
   - pacotes/pacote-1
 created: 2026-10-05
-updated: 2026-10-14
+updated: 2026-11-23
 status: pronto
 ---
 
@@ -26,16 +26,16 @@ status: pronto
 
 ## 1. Matriz Sintese de Requisitos Nao-Funcionais
 
-| Identificador | Categoria (ISO 25010) | Descrição do Requisito | Métrica Alvo e Tolerância | Prioridade |
-| :--- | :--- | :--- | :--- | :--- |
-| **RNF-01** | Desempenho e Eficiência | Resiliência e vazão sob tráfego de rajada (*flash crowd*) | $\ge 2.000\text{ req/s}$ com $P_{95} \le 200\text{ ms}$ | Crítica |
-| **RNF-02** | Integridade e Concorrência | Tolerância zero a sobre-venda (*Zero Overselling*) | $0\%$ de sobre-venda sob qualquer condição | Inegociável |
-| **RNF-03** | Precisão Temporal | Expiração estrita de reservas temporárias de assentos | Exatamente $10\text{ min} \pm 1\text{ s}$ | Crítica |
-| **RNF-04** | Resiliência e Consistência | Eliminação do *Dual-Write Dilemma* via Outbox Pattern | $0\%$ de perda de eventos entre banco e Kafka | Crítica |
-| **RNF-05** | Confiabilidade | Idempotência estrita em chamadas HTTP e no consumo | $100\%$ de deduplicação comprovada em testes | Alta |
-| **RNF-06** | Segurança | Autenticação stateless JWT e integridade dos ingressos | Criptografia assimétrica em 100% dos ingressos | Alta |
-| **RNF-07** | Testabilidade | Pirâmide de testes e validação com contêineres reais | Cobertura unitária $\ge 70\%$ nos agregados | Alta |
-| **RNF-08** | Manutenibilidade / DevOps | Ambiente conteinerizado e esteira automatizada de CI/CD | `docker compose up` único e CI verde em PR | Alta |
+| Identificador | Categoria (ISO 25010) | Descrição do Requisito | Métrica Alvo e Tolerância | Prioridade | Status no Pacote 3 (`v0.3.0`) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **RNF-01** | Desempenho e Eficiência | Resiliência e vazão sob tráfego de rajada (*flash crowd*) | $\ge 2.000\text{ req/s}$ com $P_{95} \le 200\text{ ms}$ | Crítica | Script k6 (`tests/k6-flash-crowd-load-test.js`) e locks de granularidade fina |
+| **RNF-02** | Integridade e Concorrência | Tolerância zero a sobre-venda (*Zero Overselling*) | $0\%$ de sobre-venda sob qualquer condição | Inegociável | Validado ($0,00\%$ em 200 threads unitárias e 100 chamadas HTTP REST) |
+| **RNF-03** | Precisão Temporal | Expiração estrita de reservas temporárias de assentos | Exatamente $10\text{ min} \pm 1\text{ s}$ | Crítica | Validado ($t = 600\text{ s}$ exatos em `SeatInventoryTest` com `Clock`) |
+| **RNF-04** | Resiliência e Consistência | Eliminação do *Dual-Write Dilemma* via Outbox Pattern | $0\%$ de perda de eventos entre banco e Kafka | Crítica | Validado (`TransactionalOutboxIntegrationTest` com queda e retorno do Kafka) |
+| **RNF-05** | Confiabilidade | Idempotência estrita em chamadas HTTP e no consumo | $100\%$ de deduplicação comprovada em testes | Alta | Validado (`IdempotencyStore` 24h + tabela `processed_messages`) |
+| **RNF-06** | Segurança | Autenticação stateless JWT e integridade dos ingressos | Criptografia assimétrica em 100% dos ingressos | Alta | Validado (JWT RS256 + QR Code ECDSA P-256 verificado em $< 5\text{ ms}$) |
+| **RNF-07** | Testabilidade | Pirâmide de testes e validação com contêineres reais | Cobertura unitária $\ge 70\%$ nos agregados | Alta | Validado (**$93,38\%$ instruções e $73,98\%$ branches** no domínio via JaCoCo) |
+| **RNF-08** | Manutenibilidade / DevOps | Ambiente conteinerizado e esteira automatizada de CI/CD | `docker compose up` único e CI verde em PR | Alta | Validado (Workflows `.github/workflows/ci.yml` e `pr-checks.yml`) |
 
 ---
 
@@ -126,3 +126,19 @@ status: pronto
   - Toda a infraestrutura da plataforma (microsserviços, bancos de dados, Kafka, Redis, Keycloak e frontend) deve ser executável por meio de comando único `docker compose up --build`.
   - Esteira automatizada de CI/CD (GitHub Actions / GitLab CI) executando linters estáticos, build e testes automatizados a cada Pull Request submetido à branch `develop`.
 - **Método de Verificação:** Execução do comando de compose a partir de repositório limpo, aferindo que todos os contêineres atinjam estado operacional saudável (*healthy*) em menos de 180 segundos.
+
+---
+
+## 8. Evidencias Empiricas de Verificacao no Pacote 3 (Checkpoint)
+
+No **Pacote 3**, os requisitos não-funcionais críticos foram instrumentados e aferidos automaticamente pela suíte JUnit 5, Testcontainers e JaCoCo (`./mvnw clean verify`):
+
+1. **Aferição de Cobertura de Domínio (`RNF-07`):**
+   - Cobertura de instruções nos pacotes `com.bolsopass.*.domain.*`: **$93,38\%$** ($2.950$ de $3.159$ instruções cobertas).
+   - Cobertura de desvios condicionais (*branches*) no domínio: **$73,98\%$** ($253$ de $342$ branches cobertos).
+   - Cobertura global do projeto: **$86,03\%$** de instruções e **$70,63\%$** de branches.
+2. **Aferição de Exclusão Mútua e Zero Overselling (`RNF-02`):**
+   - Em `SeatInventoryTest.shouldGuaranteeZeroOversellingUnderHighConcurrency`: 200 *Virtual Threads* (Java 21) disparadas simultaneamente via `CountDownLatch` para o assento `"A-12"` resultaram em exatamente $1$ alocação confirmada e $199$ exceções `SeatAlreadyReservedException`.
+   - Em `TransactionalOutboxIntegrationTest.shouldEnforceZeroOversellingAcross100ConcurrentRestRequests`: 100 requisições HTTP `POST /api/v1/reservations` concorrentes resultaram em exatamente $1$ resposta `HTTP 201 Created` e $99$ respostas `HTTP 409 Conflict`.
+3. **Aferição do Transactional Outbox e Idempotência (`RNF-04` e `RNF-05`):**
+   - Em `TransactionalOutboxIntegrationTest`: 3 chamadas consecutivas a `POST /api/v1/checkout` com a mesma `Idempotency-Key` durante queda simulada do broker Kafka geraram apenas $1$ débito no `PaymentGatewaySimulator`, persistiram o pedido (`PAGO`) e o evento (`PENDING`) em transação ACID única no PostgreSQL e publicaram a mensagem sem perda ($0\%$) assim que o `OutboxRelayWorker` restabeleceu conexão com o Kafka.

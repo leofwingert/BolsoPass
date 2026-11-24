@@ -27,8 +27,8 @@ O desenvolvimento da plataforma está estruturado em quatro pacotes evolutivos:
 | Pacote | Tema Central | Status | Diretorio no Repositorio |
 | :--- | :--- | :---: | :--- |
 | **Pacote 1** | **Processo de Desenvolvimento e Requisitos** | **Concluído** | [`Pacote 1 - Processo de Desenvolvimento e Requisitos/`](Pacote%201%20-%20Processo%20de%20Desenvolvimento%20e%20Requisitos/) |
-| **Pacote 2** | Arquitetura C4, Modelo de Dados, Kafka & DevOps | Concluído | [`Pacote 2 - Arquitetura e Infraestrutura/`](Pacote%202%20-%20Arquitetura%20e%20Infraestrutura/) |
-| **Pacote 3** | Checkpoint de Microsserviços e Testes $\ge 70\%$ | Planejado | `src/` & `tests/` |
+| **Pacote 2** | **Arquitetura C4, Modelo de Dados, Kafka & DevOps** | **Concluído** | [`Pacote 2 - Arquitetura e Infraestrutura/`](Pacote%202%20-%20Arquitetura%20e%20Infraestrutura/) |
+| **Pacote 3** | **Checkpoint de Microsserviços e Testes $\ge 70\%$** | **Concluído** | [`Pacote 3 - Checkpoint do Desenvolvimento/`](Pacote%203%20-%20Checkpoint%20do%20Desenvolvimento/), [`src/`](src/) & [`tests/`](tests/) |
 | **Pacote 4** | Produto Completo com Docker Compose Unificado | Planejado | `docker-compose.yml` |
 
 ---
@@ -96,3 +96,24 @@ Para visualizar os diagramas de fluxo, links conceituais bidirecionais e mapas v
 - **Índice Geral (MOC):** [`00 - Visao Geral e Indice (MOC).md`](Pacote%201%20-%20Processo%20de%20Desenvolvimento%20e%20Requisitos/00%20-%20Visao%20Geral%20e%20Indice%20%28MOC%29.md)
 - **Grafo Visual Interativo:** [`Mapa Visual dos Requisitos.canvas`](Pacote%201%20-%20Processo%20de%20Desenvolvimento%20e%20Requisitos/Mapa%20Visual%20dos%20Requisitos.canvas)
 - **Matriz de Rastreabilidade Cruzada:** [`08 - Matriz de Rastreabilidade e Pacotes de Entrega.md`](Pacote%201%20-%20Processo%20de%20Desenvolvimento%20e%20Requisitos/08%20-%20Matriz%20de%20Rastreabilidade%20e%20Pacotes%20de%20Entrega.md)
+
+---
+
+## 7. Dossie de Entregaveis do Pacote 3 (Checkpoint do Desenvolvimento)
+
+O **Pacote 3** materializa a implementação dos microsserviços e agregados de domínio em Java 21 e Spring Boot 3.3, a suíte automatizada de testes unitários e de integração com cobertura de domínio $\ge 70\%$ aferida via JaCoCo e a esteira de CI/CD no GitHub Actions:
+
+| Item do Pacote 3 | Caminho no Repositorio | Descricao Tecnica |
+| :--- | :--- | :--- |
+| **Documentação e MOC do Pacote 3** | [`Pacote 3 - Checkpoint do Desenvolvimento/`](Pacote%203%20-%20Checkpoint%20do%20Desenvolvimento/) | Índice (MOC), detalhamento dos 5 módulos implementados, cobertura JaCoCo e integração com Testcontainers. |
+| **Módulos e Agregados de Domínio** | [`src/main/java/com/bolsopass/`](src/main/java/com/bolsopass/) | Implementação dos contextos `iam`, `catalog`, `inventory`, `orders`, `ticketing` e `telemetry`. |
+| **Suíte de Testes Unitários e Integração** | [`src/test/java/com/bolsopass/`](src/test/java/com/bolsopass/) & [`tests/`](tests/) | `OrderStateMachineTest`, `SeatInventoryTest`, `DomainModulesUnitTest`, `TransactionalOutboxIntegrationTest` e script de carga k6. |
+| **Pipeline de CI/CD (GitHub Actions)** | [`.github/workflows/`](.github/workflows/) | Workflows `ci.yml` e `pr-checks.yml` com verificação bloqueante de cobertura JaCoCo $\ge 70\%$. |
+
+### Como Executar os Testes Automatizados e Verificar a Cobertura ($\ge 70\%$)
+
+```bash
+./mvnw clean test
+```
+
+O relatório completo de cobertura de código é gerado em `target/site/jacoco/index.html`.

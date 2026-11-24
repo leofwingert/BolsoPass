@@ -11,8 +11,9 @@ tags:
   - governanca
   - pacotes/pacote-1
   - pacotes/pacote-2
+  - pacotes/pacote-3
 created: 2026-10-05
-updated: 2026-10-14
+updated: 2026-11-23
 status: pronto
 ---
 
@@ -43,20 +44,24 @@ status: pronto
 ### Pacote 2: Arquitetura e Infraestrutura de Desenvolvimento
 > **Objetivo:** Especificar a arquitetura técnica, o modelo C4, a topologia de mensageria, a modelagem de dados e as políticas de GCS.
 
-| Item Exigido no Enunciado | Seção / Documento Previsto | Planejamento da Próxima Fase |
-| :--- | :--- | :--- |
-| **Descrição da arquitetura no [Modelo C4](https://c4model.com/)** (Nível 1 - Contexto, Nível 2 - Contêineres, Nível 3 - Componentes) | `Arquitetura C4 Model` (Diagramas Mermaid Níveis 1, 2 e 3) | Próxima iteração |
-| **Descrição do Modelo de Dados Conceitual** | `Modelo de Dados & ERD` (Entidades, Agregados DDD e Esquemas Relacionais) | Próxima iteração |
-| **Descrição da estrutura de mensageria do Kafka** | `Topologia Kafka` (Tópicos, Partições, Chaves e Schemas Avro/JSON) | Próxima iteração |
-| **Descrição esquemática da Pipeline de desenvolvimento** | `Pipeline CI/CD` (Linters, Testes unitários $\ge 70\%$ e Testcontainers) | Próxima iteração |
-| **Descrição do Processo de GCS** | `Processo de GCS` (Estratégia Git Flow, Regras de Proteção de Branch e PRs) | Próxima iteração |
+| Item Exigido no Enunciado | Artefatos e Documentos Correspondentes (`Pacote 2 - Arquitetura e Infraestrutura/`) | Status de Atendimento |
+| :--- | :--- | :---: |
+| **Descrição da arquitetura no [Modelo C4](https://c4model.com/)** (Nível 1 - Contexto, Nível 2 - Contêineres, Nível 3 - Componentes) | [[01 - Arquitetura C4]] (Diagramas Mermaid Níveis 1, 2 e 3 e mapeamento de componentes) | Concluído (`v0.2.0`) |
+| **Descrição do Modelo de Dados Conceitual** | [[02 - Modelo de Dados Conceitual]] (Entidades, Agregados DDD, Invariantes e Esquemas Relacionais) | Concluído (`v0.2.0`) |
+| **Descrição da estrutura de mensageria do Kafka** | [[03 - Mensageria Kafka]] (Tópicos, Partições, Chaves, Envelope de Eventos, Outbox e DLQ) | Concluído (`v0.2.0`) |
+| **Descrição esquemática da Pipeline de desenvolvimento** | [[04 - Pipeline de Desenvolvimento]] (Stages de Lint, Build, Testes Unitários $\ge 70\%$ JaCoCo e Testcontainers) | Concluído (`v0.2.0`) |
+| **Descrição do Processo de GCS** | [[05 - Processo de GCS]] (Estratégia GitFlow adaptado, Conventional Commits, SemVer e Branch Protection) | Concluído (`v0.2.0`) |
 
 ---
 
 ### Pacote 3: Checkpoint do Desenvolvimento
-- Link para o repositório Git com o estágio corrente de desenvolvimento funcional da plataforma.
-- Documentação entregue nos pacotes 1 e 2 atualizada.
-- Cobertura de testes unitários de domínio e máquinas de estado em evolução contínua.
+> **Objetivo:** Entregar o estágio funcional dos microsserviços e agregados de domínio, atualizar a documentação dos pacotes 1 e 2 e comprovar cobertura automatizada $\ge 70\%$ nas máquinas de estado e regras de domínio com integração contínua.
+
+| Item Exigido no Enunciado | Artefatos e Implementação Correspondente | Status de Atendimento |
+| :--- | :--- | :---: |
+| **1. Estágio corrente de desenvolvimento funcional da plataforma** | Código-fonte em `src/main/java/com/bolsopass/` (`iam`, `catalog`, `inventory`, `orders`, `ticketing`, `telemetry`) e documentação em [[01 - Implementacao dos Microsservicos e Dominio]] | Concluído (`v0.3.0`) |
+| **2. Documentação entregue nos pacotes 1 e 2 atualizada** | Atualização transversal das notas do Pacote 1 e do Pacote 2 com rastreabilidade direta para as classes, entidades JPA, tópicos Kafka e workflows implementados | Concluído (`v0.3.0`) |
+| **3. Cobertura de testes unitários de domínio e máquinas de estado ($\ge 70\%$)** | `OrderStateMachineTest`, `SeatInventoryTest`, `DomainModulesUnitTest` e `TransactionalOutboxIntegrationTest` (**$93,38\%$ instruções e $73,98\%$ branches no domínio** via JaCoCo), documentados em [[02 - Suite de Testes e Cobertura de Dominio JaCoCo]] e [[03 - Testes de Integracao Testcontainers e Pipeline CI]] | Concluído (`v0.3.0`) |
 
 ---
 
@@ -72,10 +77,10 @@ status: pronto
 
 A matriz a seguir cruza cada frente funcional autônoma com seus requisitos funcionais, requisitos não-funcionais associados, histórias de usuário mapeadas e mecanismos automatizados de verificação:
 
-| Módulo Autônomo | Requisitos Funcionais (RF) | Histórias de Usuário | RNFs Vinculados | Mecanismo de Verificação Automatizado |
+| Módulo Autônomo | Requisitos Funcionais (RF) | Histórias de Usuário | RNFs Vinculados | Mecanismo de Verificação Automatizado (Implementado no Pacote 3) |
 | :--- | :--- | :--- | :--- | :--- |
-| **Identidade e IAM** | RF-01, RF-02, RF-03 | US-01, US-02, US-03 | RNF-06 | Testes unitários de validação de assinatura JWT e asserção de permissões RBAC nas rotas. |
-| **Inventário e Concorrência** | RF-04, RF-05, RF-06, RF-07 | US-04, US-05, US-06, US-07 | RNF-01, RNF-02, RNF-03 | Teste de estresse com 1.000 requisições simultâneas disputando uma vaga, aferindo 0% de sobre-venda. |
-| **Pedidos e Checkout** | RF-08, RF-09, RF-10, RF-11 | US-08, US-09, US-10, US-11 | RNF-04, RNF-05, RNF-07 | Testes de domínio da FSM ($\ge 70\%$ cobertura) e Testcontainers com injeção de falha no Kafka. |
-| **Mensageria e Despacho** | RF-12, RF-13, RF-14 | US-12, US-13, US-14, US-15 | RNF-05, RNF-06 | Teste de reprocessamento com `processed_messages` e validação criptográfica da chave pública no QR Code. |
-| **Telemetria e DevOps** | RF-15, RF-16, RF-17, RF-18 | US-16, US-17, US-18 | RNF-01, RNF-08 | Execução automatizada de `docker compose up` e pipeline de CI no GitHub Actions validando Pull Requests. |
+| **Identidade e IAM** | RF-01, RF-02, RF-03 | US-01, US-02, US-03 | RNF-06 | `DomainModulesUnitTest` e `TransactionalOutboxIntegrationTest`: login JWT RS256, RBAC, bloqueio HTTP 429 após 5 falhas e rotação de Refresh Token com invalidação de família por replay. |
+| **Inventário e Concorrência** | RF-04, RF-05, RF-06, RF-07 | US-04, US-05, US-06, US-07 | RNF-01, RNF-02, RNF-03 | `SeatInventoryTest` (200 threads concorrentes $\to$ 1 reserva e 199 conflitos, TTL estrito de $600\text{ s}$) e `TransactionalOutboxIntegrationTest` (100 chamadas HTTP simultâneas $\to$ 0% sobre-venda). |
+| **Pedidos e Checkout** | RF-08, RF-09, RF-10, RF-11 | US-08, US-09, US-10, US-11 | RNF-04, RNF-05, RNF-07 | `OrderStateMachineTest` ($93,4\%$ de cobertura na FSM + `IdempotencyStore` 24h) e `TransactionalOutboxIntegrationTest` (PostgreSQL via Testcontainers + queda e recuperação do Kafka). |
+| **Mensageria e Despacho** | RF-12, RF-13, RF-14 | US-12, US-13, US-14, US-15 | RNF-05, RNF-06 | `TransactionalOutboxIntegrationTest` e `DomainModulesUnitTest`: deduplicação via `processed_messages`, geração de PDF (`%PDF-`), assinatura ECDSA P-256 ($< 5\text{ ms}$) e prevenção de dupla entrada. |
+| **Telemetria e DevOps** | RF-15, RF-16, RF-17, RF-18 | US-16, US-17, US-18 | RNF-01, RNF-08 | `DomainModulesUnitTest` (`TelemetrySnapshot`), script `tests/k6-flash-crowd-load-test.js` e workflows GitHub Actions (`.github/workflows/ci.yml` e `pr-checks.yml`) com regra bloqueante JaCoCo $\ge 70\%$. |

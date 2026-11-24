@@ -11,7 +11,7 @@ tags:
   - arquitetura
   - microsservicos
 created: 2026-10-05
-updated: 2026-10-14
+updated: 2026-11-23
 status: pronto
 ---
 
@@ -125,13 +125,13 @@ A orquestração entre o catálogo mantido no Módulo 2 e a transação financei
 
 O plano de entrega acadêmico está estruturado em quatro pacotes incrementais:
 
-1. **Pacote 1 – Processo de Desenvolvimento e Requisitos:**
-   Compreende a visão estratégica do produto, a descrição metodológica do processo auxiliado por inteligência artificial, o backlog mapeado em *Story Mapping*, os requisitos não-funcionais com métricas claras e os mockups navegáveis do front-end. Esse pacote é consolidado integralmente por esta pasta no cofre.
-2. **Pacote 2 – Arquitetura e Infraestrutura de Desenvolvimento:**
-   Elaboração da documentação arquitetural no padrão [Modelo C4](https://c4model.com/) (Contexto, Contêineres e Componentes), modelagem conceitual do banco de dados relacional, topologia do cluster [Apache Kafka](https://kafka.apache.org/), pipeline automatizada de integração contínua e disciplina de Gerenciamento da Configuração de Software (GCS).
-3. **Pacote 3 – Checkpoint do Desenvolvimento:**
-   Entrega intermediária contendo o estágio funcional dos microsserviços, implementação da suíte de testes unitários com cobertura de domínio $\ge 70\%$ e integração contínua validada com [Testcontainers](https://testcontainers.com/).
-4. **Pacote 4 – Produto Completo:**
-   Disponibilização do ecossistema integral em funcionamento, orquestrado através de arquivo `docker-compose.yml` único e documentação técnica atualizada.
+1. **Pacote 1 – Processo de Desenvolvimento e Requisitos (Concluído – `v0.1.0`):**
+   Compreende a visão estratégica do produto, a descrição metodológica do processo auxiliado por inteligência artificial, o backlog mapeado em *Story Mapping*, os requisitos não-funcionais com métricas claras e os mockups navegáveis do front-end. Consolidado integralmente por esta pasta no cofre.
+2. **Pacote 2 – Arquitetura e Infraestrutura de Desenvolvimento (Concluído – `v0.2.0`):**
+   Documentação arquitetural no padrão [Modelo C4](https://c4model.com/) ([[01 - Arquitetura C4]]), modelagem conceitual e relacional do banco de dados ([[02 - Modelo de Dados Conceitual]]), topologia e semântica de entrega do cluster [Apache Kafka](https://kafka.apache.org/) ([[03 - Mensageria Kafka]]), esteira automatizada de integração contínua ([[04 - Pipeline de Desenvolvimento]]) e disciplina de Gerenciamento da Configuração de Software ([[05 - Processo de GCS]]).
+3. **Pacote 3 – Checkpoint do Desenvolvimento (Concluído – `v0.3.0`):**
+   Entrega intermediária contendo a implementação funcional dos microsserviços e agregados de domínio em Java 21 e Spring Boot 3.3 (`src/main/java/com/bolsopass/`), suíte de testes unitários com cobertura de domínio de **$93,38\%$ de instruções e $73,98\%$ de branches** ($\ge 70\%$) aferida via [JaCoCo](https://www.jacoco.org/jacoco/), testes de integração com [Testcontainers](https://testcontainers.com/) (`src/test/java/com/bolsopass/` e `tests/`) e workflows do GitHub Actions (`.github/workflows/`), documentados em `Pacote 3 - Checkpoint do Desenvolvimento/`.
+4. **Pacote 4 – Produto Completo (Planejado – `v1.0.0`):**
+   Disponibilização do ecossistema integral em funcionamento, orquestrado através de arquivo `docker-compose.yml` único e documentação técnica consolidada.
 
 Para acompanhar o cruzamento formal entre esses marcos e os artefatos produzidos, consulte a [[08 - Matriz de Rastreabilidade e Pacotes de Entrega]].

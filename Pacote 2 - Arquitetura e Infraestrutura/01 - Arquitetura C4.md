@@ -1,227 +1,226 @@
+---
+title: "Arquitetura C4 Model - Contexto, Contêineres e Componentes"
+aliases:
+  - Arquitetura C4
+  - Modelo C4 BolsoPass
+  - Diagramas C4
+tags:
+  - pucrs
+  - construcao-de-software
+  - arquitetura
+  - c4-model
+  - microsservicos
+  - pacotes/pacote-2
+created: 2026-10-26
+updated: 2026-11-23
+status: pronto
+---
+
 # 01 — Arquitetura C4
 
-> Documentação arquitetural do BolsoPass seguindo o modelo **C4 (Context, Containers, Components)** de Simon Brown.
+> [!abstract] Resumo Arquitetural
+> Documentação arquitetural da plataforma [[00 - Visao Geral e Indice (MOC)|BolsoPass]] seguindo o [Modelo C4 (Context, Containers, Components)](https://c4model.com/) de Simon Brown. Esta especificação conecta os requisitos de negócio e atributos de qualidade definidos em [[04 - Requisitos Nao-Funcionais (RNFs)]] aos componentes implementados em código no Pacote 3 (`src/main/java/com/bolsopass/`).
 
 ---
 
-## Nível 1 — Diagrama de Contexto
+## 1. Nivel 1 — Diagrama de Contexto
 
-### Personas (atores humanos)
+### Personas (Atores Humanos)
 
-| Persona | Papel | Interação principal |
-|---|---|---|
-| **Cliente / Comprador** | Usuário final que compra ingressos | Navega catálogo, reserva assentos, faz checkout, baixa ingresso em PDF |
-| **Organizador de Evento** | Produtor que cadastra megaeventos | Cria eventos, define lotes, mapeia assentos, consulta telemetria |
-| **Operador de Portaria** | Pessoa física na catraca do evento | Opera scanner de QR, autoriza/nega entrada, trabalha online e offline |
-| **Administrador da Plataforma** | Equipe BolsoPass | Audita credenciais, gerencia organizadores, monitora SLOs |
+| Persona | Papel | Interação Principal |
+| :--- | :--- | :--- |
+| **Cliente / Comprador (Gabriel)** | Usuário final que compra ingressos | Navega catálogo, reserva assentos com TTL de 10 minutos, faz checkout com `Idempotency-Key` e baixa ingresso em PDF |
+| **Organizadora de Evento (Beatriz)** | Produtora que cadastra megaeventos | Cria eventos, define lotes com validação de capacidade, mapeia assentos e consulta telemetria em tempo real |
+| **Operador de Portaria (Marcos)** | Fiscal na catraca do estádio | Opera scanner de QR Code, valida assinatura ECDSA P-256 em $\le 300\text{ ms}$ (online e offline) e bloqueia dupla entrada |
+| **Engenheira SRE / Admin (Ana)** | Equipe de plataforma BolsoPass | Audita credenciais, monitora SLOs, gerencia organizadores e acompanha saúde das filas Kafka |
 
-### Sistemas externos
+### Sistemas Externos
 
 | Sistema | Propósito | Protocolo |
-|---|---|---|
-| **Gateway de Pagamento** (simulado) | Autorização e captura de cartão | HTTPS REST (webhook de callback) |
-| **Provedor de E-mail** (SMTP) | Envio de comprovantes e ingresso em PDF | SMTP/TLS |
+| :--- | :--- | :--- |
+| **Gateway de Pagamento** (`PaymentGatewaySimulator`) | Autorização e captura de cartão / PIX com simulação de falhas | HTTPS REST |
+| **Provedor de E-mail** (SMTP) | Envio de comprovantes e ingresso digital em PDF | SMTP / TLS |
 | **Provedor de SMS** (simulado) | Notificação multicanal de confirmação | HTTPS REST |
-| **Keycloak** | OIDC — autenticação federada | OIDC / OAuth 2.1 |
+| **Keycloak / IAM Provedor** | Autenticação OIDC e emissão de tokens JWT RS256 | OIDC / OAuth 2.1 / JWKS |
 
-### Diagrama (textual — mermaid)
-
-```mermaid
-C4Context
-  title BolsoPass — Nível 1: Contexto
-  Person(cliente, "Cliente", "Compra ingressos online")
-  Person(organizador, "Organizador", "Cadastra megaeventos e lotes")
-  Person(operador, "Operador de Portaria", "Valida QR na catraca")
-  Person(admin, "Administrador", "Audita e gerencia")
-
-  System(bolsopass, "BolsoPass", "Plataforma distribuída de bilhetagem")
-
-  System_Ext(gateway, "Gateway de Pagamento", "Autorização de cartão")
-  System_Ext(smtp, "Provedor de E-mail", "SMTP/TLS")
-  System_Ext(sms, "Provedor de SMS", "HTTPS REST")
-  System_Ext(keycloak, "Keycloak", "OIDC / OAuth 2.1")
-
-  Rel(cliente, bolsopass, "Compra ingressos", "HTTPS")
-  Rel(organizador, bolsopass, "Gerencia eventos", "HTTPS")
-  Rel(operador, bolsopass, "Scanner de QR", "HTTPS/WebSocket")
-  Rel(admin, bolsopass, "Auditoria", "HTTPS")
-
-  Rel(bolsopass, gateway, "Autoriza pagamento", "HTTPS")
-  Rel(bolsopass, smtp, "Envia comprovante", "SMTP")
-  Rel(bolsopass, sms, "Envia SMS", "HTTPS")
-  Rel(bolsopass, keycloak, "Delega autenticação", "OIDC")
-```
-
----
-
-## Nível 2 — Diagrama de Contêineres
-
-Cada microsserviço é um **contêiner Docker independente** com seu próprio ciclo de deploy.
-
-### Contêineres de aplicação
-
-| Contêiner | Tecnologia | Responsabilidade | Porta |
-|---|---|---|---|
-| **web-spa** | React 18 + Vite + TS | Interface SPA do cliente/organizador | 3000 |
-| **iam-service** | Spring Boot 3.3 | Delegação para Keycloak, perfis e auditoria | 8081 |
-| **catalog-service** | Spring Boot 3.3 | Eventos, lotes, mapas de assentos | 8082 |
-| **inventory-service** | Spring Boot 3.3 | Alocação/devolução atômica de assentos, locks Redis | 8083 |
-| **orders-service** | Spring Boot 3.3 | Checkout, FSM do pedido, Transactional Outbox | 8084 |
-| **ticketing-service** | Spring Boot 3.3 | Geração de PDF + QR assinado (ECDSA P-256) | 8085 |
-| **notification-service** | Spring Boot 3.3 | Disparo multicanal (e-mail, SMS, WebSocket) | 8086 |
-| **telemetry-service** | Spring Boot 3.3 | Ingestão e agregação de eventos de negócio | 8087 |
-| **gateway-bff** | Spring Cloud Gateway | API Gateway / BFF (roteamento + rate limit) | 8080 |
-
-### Contêineres de infraestrutura
-
-| Contêiner | Imagem | Função |
-|---|---|---|
-| **postgres** | postgres:16-alpine | Banco relacional (schemas isolados por serviço) |
-| **redis** | redis:7-alpine | Locks distribuídos + cache de catálogo |
-| **kafka** | confluentinc/cp-kafka:7.6 (KRaft) | Broker de eventos |
-| **keycloak** | quay.io/keycloak/keycloak:25 | Provedor de identidade |
-| **akhq** | tchiotludo/akhq:latest | UI de inspeção do Kafka |
-| **prometheus** | prom/prometheus | Scraping de métricas |
-| **grafana** | grafana/grafana | Dashboards |
-
-### Diagrama (mermaid)
+### Diagrama de Contexto (Nível 1)
 
 ```mermaid
 flowchart TB
-  SPA[web-spa<br/>React/Vite]
-  GW[gateway-bff<br/>Spring Cloud Gateway]
-  IAM[iam-service]
-  CAT[catalog-service]
-  INV[inventory-service]
-  ORD[orders-service]
-  TKT[ticketing-service]
-  NOT[notification-service]
-  TEL[telemetry-service]
+    subgraph Atores["Personas e Atores Humanos"]
+        Cliente["Cliente / Comprador<br/>Compra ingressos online"]
+        Organizador["Organizador de Evento<br/>Cadastra megaeventos e lotes"]
+        Operador["Operador de Portaria<br/>Valida QR Code na catraca"]
+        Admin["Administrador / SRE<br/>Audita e monitora SLOs"]
+    end
 
-  PG[(PostgreSQL)]
-  RD[(Redis)]
-  KF[/Kafka/]
-  KC[(Keycloak)]
+    BolsoPass["Plataforma BolsoPass<br/>Bilhetagem Distribuida, Reserva Atomica (TTL 10m)<br/>e Emissao Criptografica ECDSA P-256"]
 
-  SPA -->|HTTPS/REST| GW
-  SPA -.->|WebSocket| NOT
+    subgraph Externos["Sistemas Externos e Simuladores"]
+        Gateway["Gateway de Pagamento<br/>Autorizacao Financeira"]
+        Smtp["Provedor de E-mail<br/>SMTP / TLS"]
+        Sms["Provedor de SMS<br/>HTTPS REST"]
+        Keycloak["Keycloak / IAM<br/>OIDC / JWT RS256"]
+    end
 
-  GW --> IAM
-  GW --> CAT
-  GW --> INV
-  GW --> ORD
-  GW --> TKT
+    Cliente -->|"Reserva e Checkout (HTTPS / WSS)"| BolsoPass
+    Organizador -->|"Gerencia Eventos e Lotes (HTTPS)"| BolsoPass
+    Operador -->|"Scanner QR Offline/Online (HTTPS)"| BolsoPass
+    Admin -->|"Auditoria e Telemetria (HTTPS)"| BolsoPass
 
-  IAM --> KC
-  CAT --> PG
-  INV --> RD
-  INV --> PG
-  INV --> KF
-  ORD --> PG
-  ORD --> KF
-  TKT --> KF
-  TKT --> PG
-  NOT --> KF
-  TEL --> KF
-  TEL --> PG
+    BolsoPass -->|"Autoriza Pagamento (HTTPS)"| Gateway
+    BolsoPass -->|"Envia PDF do Ingresso (SMTP)"| Smtp
+    BolsoPass -->|"Dispara Confirmacao (HTTPS)"| Sms
+    BolsoPass -->|"Valida Identidade e JWKS (OIDC)"| Keycloak
 ```
-
-### Decisões de contêinerização
-
-- **Database per service** — cada serviço tem seu *schema* isolado no mesmo cluster PostgreSQL (economia operacional sem perder isolamento lógico).
-- **Keycloak** usa `postgres` compartilhado em schema próprio (`keycloak`).
-- **Kafka em modo KRaft** elimina a dependência de Zookeeper, simplificando o `docker-compose`.
-- **WebSocket** só no `notification-service` para empurrar atualizações de status de reserva e assento à SPA.
 
 ---
 
-## Nível 3 — Diagrama de Componentes (por serviço)
+## 2. Nivel 2 — Diagrama de Conteineres
 
-### 3.1 orders-service (o mais crítico)
+Cada contexto delimitado é projetado como uma unidade autônoma de execução, comunicando-se de forma assíncrona via [Apache Kafka](https://kafka.apache.org/) para eliminar acoplamento temporal durante picos de rajada (*flash crowd*).
 
-| Componente | Responsabilidade |
-|---|---|
-| **CheckoutController** | Endpoint REST `POST /orders` com validação de `Idempotency-Key` |
-| **IdempotencyFilter** | Interceptador que consulta tabela `idempotency_keys` antes do handler |
-| **CreateOrderUseCase** | Orquestra: valida reserva no inventory, cria pedido, grava outbox — **1 transação ACID** |
-| **OrderStateMachine** | FSM: `CRIADO → RESERVADO → AGUARDANDO_PAGAMENTO → PAGO ∣ EXPIRADO ∣ CANCELADO` |
-| **OrderRepository** | JPA repository (`orders`, `order_items`) |
-| **OutboxRepository** | JPA repository (`outbox_messages`) |
-| **OutboxRelayWorker** | `@Scheduled` que lê outbox e publica no Kafka (at-least-once + marca enviado) |
-| **PaymentWebhookController** | Recebe callback do gateway, atualiza FSM, grava outbox |
-| **PaymentGatewayClient** | Feign client para o gateway simulado |
+### Contêineres de Aplicação
+
+| Contêiner / Módulo | Tecnologia | Responsabilidade | Porta Padrão |
+| :--- | :--- | :--- | :---: |
+| **web-spa** | React 18 / HTML5 / CSS3 / JS | Interface SPA reativa (protótipo navegável em `mockups-high-res/index.html`) | 3000 |
+| **gateway-bff** | Spring Cloud Gateway / Web | Roteamento de borda, propagação de `Idempotency-Key` e rate limiting | 8080 |
+| **iam-service** (`com.bolsopass.iam`) | Spring Boot 3.3 (Java 21) | Emissão e validação de JWT RS256, RBAC, rotação de Refresh Token e auditoria | 8081 |
+| **catalog-service** (`com.bolsopass.catalog`) | Spring Boot 3.3 (Java 21) | Eventos, locais e lotes com validação estrita de capacidade | 8082 |
+| **inventory-service** (`com.bolsopass.inventory`) | Spring Boot 3.3 (Java 21) | Alocação atômica de assentos (*Zero Overselling*), TTL de 600s e devolução automática | 8083 |
+| **orders-service** (`com.bolsopass.orders`) | Spring Boot 3.3 (Java 21) | Checkout, FSM do Pedido, `IdempotencyStore` (24h) e Transactional Outbox | 8084 |
+| **ticketing-service** (`com.bolsopass.ticketing`) | Spring Boot 3.3 (Java 21) | Consumo idempotente (`processed_messages`), PDF (OpenPDF) e QR Code ECDSA P-256 | 8085 |
+| **notification-service** | Spring Boot 3.3 (Java 21) | Push reativo em canal WebSocket (`/ws/orders/{orderId}`), e-mail e SMS | 8086 |
+| **telemetry-service** (`com.bolsopass.telemetry`) | Spring Boot 3.3 (Java 21) | Agregação atômica de métricas de funil, vazão e auditoria de sobre-venda | 8087 |
+
+### Contêineres de Infraestrutura
+
+| Contêiner | Imagem Docker | Função na Arquitetura |
+| :--- | :--- | :--- |
+| **postgres** | `postgres:16-alpine` / `postgres:15-alpine` | Persistência relacional ACID (`orders`, `outbox_events`, `processed_messages`) |
+| **redis** | `redis:7-alpine` | Locks distribuídos de reserva, famílias de Refresh Token e cache de catálogo |
+| **kafka** | `confluentinc/cp-kafka:7.6` (KRaft) | Broker de eventos de domínio (`pedidos.pagos`, `reservas.expiradas`) |
+| **keycloak** | `quay.io/keycloak/keycloak:25` | Provedor de identidade OIDC federado |
+| **akhq** | `tchiotludo/akhq:latest` | Interface web para inspeção de tópicos e grupos consumidores do Kafka |
+| **prometheus & grafana** | `prom/prometheus` & `grafana/grafana` | Coleta de métricas Actuator/Micrometer e painéis operacionais |
+
+### Diagrama de Contêineres (Nível 2)
+
+```mermaid
+flowchart TB
+    SPA["web-spa<br/>Interface Reativa SPA"]
+    GW["gateway-bff<br/>API Gateway / BFF"]
+    IAM["iam-service<br/>JWT RS256 + RBAC + RefreshTokenFamily"]
+    CAT["catalog-service<br/>Eventos e Lotes"]
+    INV["inventory-service<br/>Alocacao Atomica + TTL 600s"]
+    ORD["orders-service<br/>FSM + Idempotency-Key + Outbox"]
+    TKT["ticketing-service<br/>OpenPDF + ECDSA P-256 + Catraca"]
+    NOT["notification-service<br/>WebSocket /ws/orders/{id}"]
+    TEL["telemetry-service<br/>Metricas Flash Crowd"]
+
+    PG[("PostgreSQL<br/>ACID + Outbox + ProcessedMessages")]
+    RD[("Redis 7<br/>Locks + Cache + Refresh Tokens")]
+    KF[/"Apache Kafka (KRaft)<br/>pedidos.pagos / reservas.expiradas"/]
+    KC[("Keycloak 25<br/>OIDC")]
+
+    SPA -->|"HTTPS REST (Idempotency-Key)"| GW
+    SPA -.->|"WebSocket Push"| NOT
+
+    GW --> IAM
+    GW --> CAT
+    GW --> INV
+    GW --> ORD
+    GW --> TKT
+
+    IAM --> KC
+    IAM --> RD
+    CAT --> PG
+    CAT --> RD
+    INV --> RD
+    INV --> PG
+    INV -->|"reservas.expiradas"| KF
+    ORD --> PG
+    ORD -->|"pedidos.pagos (via Outbox)"| KF
+    KF -->|"Consumo Idempotente"| TKT
+    TKT --> PG
+    TKT --> NOT
+    KF --> TEL
+    TEL --> PG
+```
+
+---
+
+## 3. Nivel 3 — Diagrama de Componentes e Mapeamento para o Codigo (Pacote 3)
+
+### 3.1 Módulo de Pedidos e Checkout (`com.bolsopass.orders`)
+
+| Componente C4 | Classe Implementada (`src/main/java/com/bolsopass/orders/`) | Responsabilidade |
+| :--- | :--- | :--- |
+| **CheckoutController** | `api.CheckoutController` | Endpoint REST `POST /api/v1/checkout` (e `/checkout`) exigindo cabeçalho `Idempotency-Key` |
+| **IdempotencyStore** | `domain.IdempotencyStore` | Deduplicação em janela de 24 horas com verificação de hash de payload e detecção de chamadas concorrentes (`PROCESSING` $\to$ `HTTP 409`) |
+| **CheckoutService** | `service.CheckoutService` | Caso de uso transacional (`@Transactional`): valida reserva no inventário, aciona gateway, transiciona FSM e persiste `OrderEntity` + `OutboxEventEntity` em **1 transação ACID** |
+| **OrderStateMachine & Order** | `domain.OrderStateMachine`, `domain.Order` | FSM formal: `CRIADO` $\to$ `RESERVADO` $\to$ `AGUARDANDO_PAGAMENTO` $\to$ `PAGO` $\mid$ `RECUSADO` $\mid$ `EXPIRADO` $\mid$ `CANCELADO` |
+| **OrderJpaRepository** | `infrastructure.OrderJpaRepository` | Persistência JPA na tabela `orders` (`OrderEntity`) |
+| **OutboxEventRepository** | `infrastructure.OutboxEventRepository` | Persistência JPA na tabela `outbox_events` (`OutboxEventEntity`) com query nativa `FOR UPDATE SKIP LOCKED` |
+| **OutboxRelayWorker** | `service.OutboxRelayWorker` | Worker desacoplado que lê lote `PENDING`, publica no tópico `pedidos.pagos` do Kafka e marca `PUBLISHED` após ACK |
+| **PaymentGatewaySimulator** | `service.PaymentGatewaySimulator` | Simulador financeiro com suporte a aprovação, recusa (`INSUFFICIENT_FUNDS`) e auditoria de número de cobranças |
 
 ```mermaid
 flowchart LR
-  REST[CheckoutController] --> IDE[IdempotencyFilter]
-  IDE --> UC[CreateOrderUseCase]
-  UC --> SM[OrderStateMachine]
-  UC --> OR[OrderRepository]
-  UC --> OX[OutboxRepository]
-  OX -. mesma Tx .- OR
-  WORK[OutboxRelayWorker] --> OX
-  WORK -->|publica| KF[/Kafka/]
-  WH[PaymentWebhookController] --> SM
-  WH --> OX
-  UC --> PG[PaymentGatewayClient]
+    REST["CheckoutController"] --> SVC["CheckoutService (@Transactional)"]
+    SVC --> IDEM["IdempotencyStore (24h)"]
+    SVC --> INV["InventoryService"]
+    SVC --> SM["Order & OrderStateMachine"]
+    SVC --> GW["PaymentGatewaySimulator"]
+    SVC --> OR["OrderJpaRepository (orders)"]
+    SVC --> OX["OutboxEventRepository (outbox_events)"]
+    OX -. "Mesma Transacao ACID" .- OR
+    WORK["OutboxRelayWorker"] -->|"FOR UPDATE SKIP LOCKED"| OX
+    WORK -->|"Publica PedidoPagoEvent"| KF[/"Kafka: pedidos.pagos"/]
 ```
 
-### 3.2 inventory-service
+### 3.2 Módulo de Inventário e Concorrência (`com.bolsopass.inventory`)
 
-| Componente | Responsabilidade |
-|---|---|
-| **ReservationController** | `POST /reservations` e `DELETE /reservations/{id}` |
-| **AtomicSeatAllocator** | Lock Redis (SETNX com TTL de 10min) + constraint única no PostgreSQL |
-| **SeatRepository** | JPA repository (`seats`, `seat_locks`) |
-| **ReservationExpiryWorker** | Job que varre reservas vencidas e publica `reservation.expired` |
-| **ReservationEventPublisher** | Produz `reservation.created` e `reservation.released` via outbox |
+| Componente C4 | Classe Implementada (`src/main/java/com/bolsopass/inventory/`) | Responsabilidade |
+| :--- | :--- | :--- |
+| **ReservationController** | `api.ReservationController` | Endpoint `POST /api/v1/reservations` (e `/reservations`) conforme contrato OpenAPI 3.0 |
+| **InventoryService** | `service.InventoryService` | Orquestração de inventário por evento, alocação e confirmação de reservas |
+| **SeatInventory** | `domain.SeatInventory` | Coordenador de domínio thread-safe que garante *Zero Overselling*, invariante de conservação de estoque e expiração em lote |
+| **Seat & Reservation** | `domain.Seat`, `domain.Reservation` | Agregados com lock atômico por assento, TTL estrito de $600\text{ s}$ (10 minutos) e emissão de `ReservaExpiradaEvent` |
 
-### 3.3 ticketing-service
+### 3.3 Módulo de Emissão de Ingressos e Portaria (`com.bolsopass.ticketing`)
 
-| Componente | Responsabilidade |
-|---|---|
-| **PaymentConfirmedConsumer** | Consome `payment.confirmed` com idempotência (`processed_messages`) |
-| **PdfGenerator** | Renderiza PDF (iText 7) com dados do pedido |
-| **QrSigner** | Assina payload do ingresso com ECDSA P-256 |
-| **TicketRepository** | JPA repository (`tickets`) |
-| **TicketStorageClient** | Persiste PDF (filesystem local ou S3) |
+| Componente C4 | Classe Implementada (`src/main/java/com/bolsopass/ticketing/`) | Responsabilidade |
+| :--- | :--- | :--- |
+| **TicketingService** | `service.TicketingService` | Consumidor Kafka (`@KafkaListener` em `pedidos.pagos`), geração de PDF (OpenPDF + ZXing) e push WebSocket (`/ws/orders/{orderId}`) |
+| **ProcessedMessageRepository** | `infrastructure.ProcessedMessageRepository` | Deduplicação mandatória via tabela `processed_messages(message_id, consumer_group, processed_at)` |
+| **TicketCryptoSigner** | `domain.TicketCryptoSigner` | Assinatura digital assimétrica ECDSA P-256 (`secp256r1` / `SHA256withECDSA`) e verificação 100% offline via chave pública |
+| **DigitalTicket** | `domain.DigitalTicket` | Agregado do bilhete digital com prevenção de dupla entrada na catraca (`AUTORIZADO` $\to$ `DUPLICATA` / `INVALIDO`) |
 
-### 3.4 notification-service
+### 3.4 Módulo de Identidade e Governança (`com.bolsopass.iam`)
 
-| Componente | Responsabilidade |
-|---|---|
-| **TicketIssuedConsumer** | Consome `ticket.issued` |
-| **EmailSender** | SMTP via Spring Mail |
-| **SmsSender** | Cliente HTTP para gateway simulado |
-| **WebSocketBroadcaster** | STOMP/WebSocket pushando ao canal da sessão |
+| Componente C4 | Classe Implementada (`src/main/java/com/bolsopass/iam/`) | Responsabilidade |
+| :--- | :--- | :--- |
+| **AuthController** | `api.AuthController` | Endpoints `/api/v1/auth/login`, `/api/v1/auth/refresh` e `/api/v1/auth/logout` |
+| **IamService** | `service.IamService` | Geração e validação de JWT RS256 (TTL 900s), gestão de famílias de Refresh Tokens e trilha de auditoria |
+| **UserAccount & RefreshTokenFamily** | `domain.UserAccount`, `domain.RefreshTokenFamily` | Regras RBAC (`Role`), bloqueio por *rate limiting* após 5 falhas (HTTP 429) e invalidação de família por replay de token |
 
-### 3.5 iam-service
+### 3.5 Módulo de Telemetria (`com.bolsopass.telemetry`)
 
-| Componente | Responsabilidade |
-|---|---|
-| **JwtAuthFilter** | Valida assinatura JWS contra JWKS do Keycloak |
-| **RbacAuthorizationFilter** | Checa roles (CLIENTE / ORGANIZADOR / OPERADOR / ADMIN) |
-| **UserProfileController** | Perfil estendido (CPF, telefone, endereço) |
-| **AuditLogger** | Grava auditoria em `audit_events` |
-
-### 3.6 telemetry-service
-
-| Componente | Responsabilidade |
-|---|---|
-| **DomainEventConsumer** | Consome todos os tópicos de domínio |
-| **MetricsAggregator** | Agrega por janela (minuto/hora) |
-| **DashboardController** | Endpoints REST para o painel do organizador |
+| Componente C4 | Classe Implementada (`src/main/java/com/bolsopass/telemetry/`) | Responsabilidade |
+| :--- | :--- | :--- |
+| **TelemetrySnapshot** | `domain.TelemetrySnapshot` | Contadores atômicos de vazão, conversão do funil de checkout, receita acumulada e auditoria de zero sobre-venda |
 
 ---
 
-## Padrões arquiteturais adotados
+## 4. Padroes Arquiteturais Adotados e Verificados
 
-| Padrão | Onde | Por quê |
-|---|---|---|
-| **Transactional Outbox** | `orders-service`, `inventory-service` | Elimina Dual-Write Dilemma entre PostgreSQL e Kafka |
-| **Idempotency Key** | `gateway-bff` + `orders-service` | Garantia de exactly-once perceived no checkout |
-| **Processed Messages Table** | Todos os consumers | Deduplicação na recepção (at-least-once → effectively-once) |
-| **CQRS leve** | `catalog-service` | Leitura via Redis cache, escrita via PostgreSQL |
-| **BFF (Backend-for-Frontend)** | `gateway-bff` | Agrega chamadas e expõe DTOs otimizados para o SPA |
-| **Database per Service** | Todos | Isolamento lógico de schemas |
-| **Saga coreografada** | Checkout → Pagamento → Emissão → Notificação | Sem orquestrador central; eventos Kafka costuram o fluxo |
+| Padrão | Onde é Aplicado | Problema Resolvido e Verificação no Pacote 3 |
+| :--- | :--- | :--- |
+| **Transactional Outbox** | `CheckoutService` + `OutboxRelayWorker` | Elimina o *Dual-Write Dilemma* entre PostgreSQL e Kafka (`TransactionalOutboxIntegrationTest`). |
+| **Idempotency-Key (24h)** | `CheckoutController` + `IdempotencyStore` | Garante *effectively-once* no checkout HTTP, impedindo cobrança duplicada (`OrderStateMachineTest`). |
+| **Processed Messages Table** | `TicketingService` + `ProcessedMessageEntity` | Absorve reentregas *At-Least-Once* do Kafka sem duplicar ingressos PDF (`TransactionalOutboxIntegrationTest`). |
+| **Fine-Grained Atomic Seat Lock** | `SeatInventory` + `Seat` | Garante $0,00\%$ de sobre-venda sob rajada concorrente (`SeatInventoryTest` com 200 threads). |
+| **Refresh Token Rotation & Replay Detection** | `IamService` + `RefreshTokenFamily` | Contém sequestro de sessão revogando toda a família ao detectar reuso (`DomainModulesUnitTest`). |
+| **Offline Asymmetric QR Verification** | `TicketCryptoSigner` + `DigitalTicket` | Permite validação na catraca sem internet em $< 5\text{ ms}$ via ECDSA P-256 (`DomainModulesUnitTest`). |

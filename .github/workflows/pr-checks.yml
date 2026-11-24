@@ -1,0 +1,31 @@
+name: PR Checks (Integration Tests & Coverage)
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  integration-and-coverage:
+    name: Testcontainers Integration & Domain Coverage (>= 70%)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Execute Full Verification (Unit + Testcontainers + JaCoCo >= 70%)
+        run: ./mvnw -B -ntp clean verify
+
+      - name: Upload JaCoCo Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-jacoco-report
+          path: target/site/jacoco/
+

@@ -10,7 +10,7 @@ tags:
   - processo
   - pacotes/pacote-1
 created: 2026-10-05
-updated: 2026-10-14
+updated: 2026-11-23
 status: pronto
 ---
 
@@ -57,19 +57,21 @@ O ciclo de vida de cada funcionalidade segue cinco etapas iterativas e bem delim
 ### Etapa 2: Modelagem Arquitetural e Decisoes Estruturais
 - **Objetivo:** Antecipar gargalos de concorrência e mitigar o acoplamento temporal.
 - **Papel da Engenharia e da IA:** Discussão técnica estruturada sobre trade-offs arquiteturais através de registros de decisão de arquitetura (*Architecture Decision Records - ADRs*). O agente atua explorando cenários de estresse — como a viabilidade de bloqueio pessimista relacional frente a travas distribuídas no Redis, ou os impactos de entrega *At-Least-Once* na duplicação de mensagens.
-- **Relação com o Projeto:** Fundamenta as escolhas que sustentam as máquinas de estado detalhadas em [[06 - Maquinas de Estados e Regras de Negocio]].
+- **Relação com o Projeto:** Fundamenta as escolhas que sustentam as máquinas de estado detalhadas em [[06 - Maquinas de Estados e Regras de Negocio]] e os diagramas arquiteturais do **Pacote 2** ([[01 - Arquitetura C4]], [[02 - Modelo de Dados Conceitual]] e [[03 - Mensageria Kafka]]).
 
 ### Etapa 3: Desenvolvimento Orientado a Testes de Dominio (TDD com IA)
 - **Objetivo:** Garantir determinismo e atingir cobertura unitária $\ge 70\%$ nos agregados centrais do sistema, conforme preconizado em [[04 - Requisitos Nao-Funcionais (RNFs)]].
 - **Papel da Engenharia e da IA:** O engenheiro guia o agente na escrita dos testes unitários da máquina de estados do pedido (`Criado` $\to$ `Reservado` $\to$ `Aguardando` $\to$ `Pago` $\to$ `Expirado`) e das regras de expiração estrita de 10 minutos. O código de produção só é gerado após a falha planejada dos testes de unidade.
+- **Materialização no Pacote 3:** Implementada nas suítes `OrderStateMachineTest`, `SeatInventoryTest` e `DomainModulesUnitTest` (`src/test/java/com/bolsopass/`), atingindo **$93,38\%$ de cobertura de instruções e $73,98\%$ de branches** nos pacotes `com.bolsopass.*.domain.*`, auditada automaticamente pelo plugin JaCoCo no `pom.xml`.
 
 ### Etapa 4: Integracao de Infraestrutura com Testcontainers
 - **Objetivo:** Eliminar falsos positivos decorrentes de bancos em memória (*h2/mocks*) através de validação em instâncias reais de contêineres.
 - **Papel da Engenharia e da IA:** Configuração automatizada de suítes de teste de integração que sobem contêineres efêmeros de PostgreSQL, Apache Kafka e Redis utilizando a biblioteca [Testcontainers](https://testcontainers.com/). O agente cria cenários que simulam quedas intencionais do broker Kafka durante o processamento do pagamento para comprovar que o *Transactional Outbox Pattern* não perde eventos nem gera estados inconsistentes.
+- **Materialização no Pacote 3:** Implementada em `TransactionalOutboxIntegrationTest`, validando persistência ACID em PostgreSQL via Testcontainers durante indisponibilidade simulada do broker Kafka, despacho via `OutboxRelayWorker` (`FOR UPDATE SKIP LOCKED`) após recuperação, deduplicação de 3 chamadas HTTP consecutivas com mesma `Idempotency-Key` e consumo idempotente com a tabela `processed_messages`.
 
 ### Etapa 5: Revisao de Codigo, GCS e Governanca
 - **Objetivo:** Manter a higiene da base de código e a conformidade com as políticas de integração contínua.
-- **Papel da Engenharia e da IA:** Toda modificação é submetida via Pull Request. Agentes de IA realizam a primeira camada de revisão de código (*code review*), inspecionando vazamentos de conexões em pools relacionais, correta propagação do cabeçalho `Idempotency-Key` e aderência aos padrões de código limpo.
+- **Papel da Engenharia e da IA:** Toda modificação é submetida via Pull Request segundo o fluxo definido em [[05 - Processo de GCS]]. Agentes de IA realizam a primeira camada de revisão de código (*code review*), inspecionando vazamentos de conexões em pools relacionais, correta propagação do cabeçalho `Idempotency-Key` e aderência aos padrões de código limpo, enquanto os workflows `.github/workflows/ci.yml` e `.github/workflows/pr-checks.yml` (documentados em [[04 - Pipeline de Desenvolvimento]]) bloqueiam merges que não atinjam $\ge 70\%$ de cobertura no JaCoCo.
 
 ---
 

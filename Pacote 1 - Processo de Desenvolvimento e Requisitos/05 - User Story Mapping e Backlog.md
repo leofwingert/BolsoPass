@@ -12,7 +12,7 @@ tags:
   - user-stories
   - pacotes/pacote-1
 created: 2026-10-05
-updated: 2026-10-14
+updated: 2026-11-23
 status: pronto
 ---
 
@@ -62,9 +62,9 @@ A matriz abaixo distribui as histórias de usuário de acordo com o plano de evo
 
 | Atividades do Usuário $\to$ | 1. Identificar e Autenticar | 2. Explorar e Reservar Assento | 3. Efetuar Checkout Resiliente | 4. Emitir e Despachar Ingresso | 5. Portaria e Operações |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Fatia 1: MVP Core (Pacotes 1 e 2)** | **US-01:** Login JWT com papéis RBAC | **US-04:** Catálogo em cache Redis<br/>**US-05:** Alocação atômica de assento | **US-08:** Máquina de estados do pedido<br/>**US-09:** Publicação com Transactional Outbox | **US-12:** Consumo Kafka de eventos de pagamento | **US-16:** Orquestração completa via Docker Compose |
-| **Fatia 2: Checkpoint (Pacote 3)** | **US-02:** Rotação de Refresh Token no Redis | **US-06:** Expiração estrita de reserva em 10 min | **US-10:** Suporte ao cabeçalho `Idempotency-Key` | **US-13:** Geração de PDF e assinatura do QR Code<br/>**US-14:** Push reativo via WebSocket | **US-17:** Pipeline de CI/CD com Testcontainers |
-| **Fatia 3: Produto Completo (Pacote 4)** | **US-03:** Auditoria de acessos e Rate Limiting | **US-07:** Mapa de assentos interativo com WebSocket | **US-11:** Tratamento de recusas e falhas de gateway | **US-15:** Validação offline na portaria | **US-18:** Dashboard analítico de telemetria em tempo real |
+| **Fatia 1: MVP Core (Pacotes 1 e 2 — Concluída)** | **US-01:** Login JWT com papéis RBAC (Implementado) | **US-04:** Catálogo e invariantes de lote (Implementado)<br/>**US-05:** Alocação atômica de assento (Implementado) | **US-08:** Máquina de estados do pedido (Implementado)<br/>**US-09:** Publicação com Transactional Outbox (Implementado) | **US-12:** Consumo Kafka idempotente com `processed_messages` (Implementado) | **US-16:** Arquitetura de contêineres e schemas (Especificado no Pacote 2) |
+| **Fatia 2: Checkpoint (Pacote 3 — Concluída em `v0.3.0`)** | **US-02:** Rotação de Refresh Token com detecção de replay (Implementado)<br/>**US-03:** Auditoria e Rate Limiting (Implementado) | **US-06:** Expiração estrita de reserva em 10 min ($600\text{ s}$) (Implementado) | **US-10:** Suporte ao cabeçalho `Idempotency-Key` 24h (Implementado)<br/>**US-11:** Retentativa após recusa de cartão (Implementado) | **US-13:** Geração de PDF e assinatura ECDSA P-256 (Implementado)<br/>**US-14:** Push reativo via WebSocket (Implementado)<br/>**US-15:** Validação offline na portaria (Implementado) | **US-17:** Pipeline de CI/CD com Testcontainers e JaCoCo $\ge 70\%$ (Implementado) |
+| **Fatia 3: Produto Completo (Pacote 4 — Planejada)** | Integração federada completa com realm Keycloak no Compose | **US-07:** Mapa de assentos SPA integrado via WebSocket | Orquestração fim a fim de webhooks em contêineres | Integração SMTP / WebSocket live no navegador | **US-16 / US-18:** `docker-compose.yml` unificado e Dashboard live |
 
 ---
 

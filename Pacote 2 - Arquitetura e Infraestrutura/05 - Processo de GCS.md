@@ -1,175 +1,116 @@
-# 05 — Processo de GCS (Gerenciamento da Configuração de Software)
+---
+title: "Processo de Gerenciamento da Configuração de Software (GCS)"
+aliases:
+  - Processo de GCS
+  - GitFlow BolsoPass
+  - Versionamento e Commits
+tags:
+  - pucrs
+  - construcao-de-software
+  - gcs
+  - git
+  - gitflow
+  - semver
+  - pacotes/pacote-2
+created: 2026-10-26
+updated: 2026-11-23
+status: pronto
+---
 
-> Define a ferramenta, o fluxo de branches, as regras de contribuição e a estratégia de versionamento do BolsoPass.
+# 05 — Processo de GCS (Gerenciamento da Configuracao de Software)
+
+> [!abstract] Resumo de Governança de Configuração
+> Define a ferramenta de controle de versão, a estrutura do monorepo, o fluxo de branches (*GitFlow adaptado*), a convenção de mensagens de commit (*Conventional Commits*) e a política de versionamento semântico adotada na plataforma [[00 - Visao Geral e Indice (MOC)|BolsoPass]].
 
 ---
 
-## 1. Ferramenta
+## 1. Ferramenta e Estrutura do Repositorio
 
-| Item | Decisão |
-|---|---|
-| **SCM** | Git |
-| **Hospedagem** | GitHub (repositório privado da organização) |
-| **Modelo de repositório** | **Monorepo** com Maven multi-module + pnpm workspace |
-| **Linha principal** | `main` (produção) |
-| **Linha de integração** | `develop` (próxima release) |
+| Item de Configuração | Decisão Adotada |
+| :--- | :--- |
+| **Sistema de Controle de Versão (SCM)** | Git |
+| **Hospedagem e CI** | GitHub + GitHub Actions (`.github/workflows/`) |
+| **Topologia de Repositório** | **Monorepo** contendo documentação Obsidian (Pacotes 1, 2 e 3), especificações formais OpenAPI/AsyncAPI, Agent Skills (`.agents/`), código-fonte Java 21 / Spring Boot (`src/`) e suítes de teste (`src/test/` e `tests/`) |
+| **Branch Principal de Produção** | `main` (releases estáveis taggeadas) |
+| **Branch de Integração Contínua** | `develop` (consolidação de features da próxima release) |
 
-### Por que monorepo
-
-- Compartilhamento fácil de contratos (OpenAPI/AsyncAPI) e libs internas.
-- Um único pipeline cobre a build cruzada entre serviços.
-- Refactorings transversais (ex: trocar campo em evento) ficam atômicos.
+### Por que Monorepo no BolsoPass
+1. **Sincronia entre Especificação e Código:** Permite que contratos OpenAPI 3.0, AsyncAPI 2.6, notas arquiteturais no Obsidian e classes Java de domínio evoluam de forma atômica no mesmo Pull Request.
+2. **Verificação Unificada:** Um único comando (`./mvnw clean verify`) compila todos os contextos delimitados (`iam`, `catalog`, `inventory`, `orders`, `ticketing`, `telemetry`), executa os 22 testes automatizados e valida a cobertura JaCoCo $\ge 70\%$.
 
 ---
 
-## 2. Modelo de branches (GitFlow adaptado)
+## 2. Modelo de Branches (GitFlow Adaptado)
 
-```
-main      ────●──────●──────●────▶   (releases taggeadas)
-                \    /\    /
-release/*        \  /  \  /          (congelamento + hotfix pre-release)
-                  \/    \/
-develop   ──●──●──●──●──●──●──●──▶   (integração contínua)
-            │  │  │     │  │
-feature/*   ●──┘  │     │  │        (features)
-bugfix/*          ●─────┘  │        (bugs achados em develop)
-hotfix/*                   ●──▶ main (correção emergencial em prod)
-```
+```mermaid
+flowchart LR
+    MAIN["main<br/>(Releases: v0.1.0, v0.2.0, v0.3.0)"]
+    DEV["develop<br/>(Integracao Continua)"]
+    FEAT["feature/*<br/>(Novos Modulos e US)"]
+    FIX["bugfix/*<br/>(Correcoes em develop)"]
+    REL["release/*<br/>(Estabilizacao de Pacote)"]
+    HOT["hotfix/*<br/>(Correcao Critica)"]
 
-### Nomenclatura
-
-| Prefixo | Uso | Exemplo |
-|---|---|---|
-| `feature/` | Nova funcionalidade | `feature/orders-idempotency-key` |
-| `bugfix/` | Correção de bug em develop | `bugfix/inventory-lock-ttl` |
-| `hotfix/` | Correção emergencial em produção | `hotfix/qr-signature-encoding` |
-| `release/` | Congelamento pré-release | `release/0.3.0` |
-| `chore/` | Tarefas internas (build, docs, deps) | `chore/upgrade-spring-boot-3.3` |
-| `docs/` | Alterações só de documentação | `docs/pacote-2-c4` |
-
-### Regras
-
-- Branches sempre criadas a partir de `develop` (exceto `hotfix/*` que sai de `main`).
-- Branches devem viver **≤ 5 dias**. Mais que isso, rebase diário contra `develop`.
-- Nome em `kebab-case`, prefixo + escopo + verbo (opcional) + alvo.
-
----
-
-## 3. Fluxo de contribuição
-
-1. **Issue aberta** no GitHub descrevendo o trabalho (template de issue).
-2. Dev cria branch `feature/<nome>` a partir de `develop`.
-3. Commits locais seguindo **Conventional Commits**.
-4. Dev abre **Pull Request** cedo (draft permitido) → CI roda.
-5. PR precisa de:
-   - **≥ 1 review aprovado** (2 reviews para mudanças em `*-domain-*` ou contratos).
-   - **Todos os checks verdes** (ver [04 - Pipeline](04%20-%20Pipeline%20de%20Desenvolvimento.md)).
-   - **Branch atualizada** com `develop`.
-   - Issue linkada (`Closes #123`).
-6. **Merge via Squash and Merge** → mensagem final no formato Conventional Commit.
-7. Branch deletada automaticamente após merge.
-
----
-
-## 4. Conventional Commits
-
-Formato: `<type>(<scope>): <subject>`
-
-| Type | Uso |
-|---|---|
-| `feat` | Nova funcionalidade |
-| `fix` | Correção de bug |
-| `docs` | Documentação |
-| `style` | Formatação (sem impacto de código) |
-| `refactor` | Refactor sem mudar comportamento |
-| `perf` | Melhoria de performance |
-| `test` | Adição/correção de testes |
-| `build` | Build system / deps |
-| `ci` | Pipeline CI/CD |
-| `chore` | Tarefas de manutenção |
-
-**Exemplos:**
-
-```
-feat(orders): adiciona suporte a Idempotency-Key
-fix(inventory): corrige TTL do lock Redis em cancelamento
-docs(pacote2): mapeia tópicos Kafka no AsyncAPI
-test(ticketing): cobre QR com assinatura inválida
-refactor(iam): extrai RbacAuthorizationFilter
+    DEV -->|"branch"| FEAT
+    FEAT -->|"PR + CI JaCoCo >= 70%"| DEV
+    DEV -->|"branch"| FIX
+    FIX -->|"PR + CI"| DEV
+    DEV -->|"congelamento"| REL
+    REL -->|"merge + tag SemVer"| MAIN
+    REL -->|"merge back"| DEV
+    MAIN -->|"emergencia"| HOT
+    HOT -->|"merge + patch tag"| MAIN
 ```
 
-Validado automaticamente via **commitlint** no CI (ver [04 - Pipeline §2.1](04%20-%20Pipeline%20de%20Desenvolvimento.md#21-lint--format-bloqueante)).
+### Convenção de Nomenclatura de Branches
+
+| Prefixo | Finalidade | Exemplo Real no Projeto |
+| :--- | :--- | :--- |
+| `feature/` | Implementação de história de usuário ou módulo | `feature/orders-transactional-outbox` |
+| `bugfix/` | Correção de defeito identificado em `develop` | `bugfix/inventory-ttl-clock-boundary` |
+| `release/` | Preparação e auditoria de pacote avaliativo da PUCRS | `release/0.3.0` |
+| `hotfix/` | Correção emergencial sobre tag publicada em `main` | `hotfix/qr-ecdsa-signature-verification` |
+| `docs/` | Criação ou atualização de documentação e MOCs no cofre | `docs/pacote-3-rastreabilidade` |
+| `chore/` | Manutenção de build, dependências Maven ou workflows CI | `chore/configure-jacoco-domain-rule` |
 
 ---
 
-## 5. Versionamento
+## 3. Fluxo de Contribuicao e Revisao (Code Review)
 
-- **SemVer 2.0.0** — `MAJOR.MINOR.PATCH`.
-- Tags assinadas: `git tag -s v1.2.3 -m "release 1.2.3"`.
-- Release notes geradas automaticamente com **release-please** ou **semantic-release**.
-- Pacote 1 congelado em `v0.1.0`, Pacote 2 em `v0.2.0`.
-
-| Incremento | Quando usar |
-|---|---|
-| **MAJOR** | Breaking change em contrato público (OpenAPI/AsyncAPI/payload de evento) |
-| **MINOR** | Nova feature retrocompatível |
-| **PATCH** | Bug fix retrocompatível |
-
----
-
-## 6. Code review — critérios
-
-Reviewer verifica (checklist no template de PR):
-
-- [ ] A mudança resolve o que a issue pede, nada além.
-- [ ] Nome das variáveis/métodos descreve a intenção.
-- [ ] Testes cobrem o caminho feliz **e** pelo menos um caminho de falha.
-- [ ] Nenhum segredo (chave, token, senha) hard-coded.
-- [ ] Logs em pontos de decisão críticos (sem PII em claro).
-- [ ] Documentação atualizada se mudou contrato ou arquitetura.
-- [ ] Migrations Flyway versionadas sequencialmente, sem edição retroativa.
+1. **Abertura de Tarefa / História:** Toda alteração referencia uma User Story (`US-01` a `US-18`) ou requisito (`RF-01` a `RF-18`, `RNF-01` a `RNF-08`) mapeado na [[08 - Matriz de Rastreabilidade e Pacotes de Entrega]].
+2. **Desenvolvimento Orientado a Testes (TDD):** O desenvolvedor (em pareamento com o agente de IA, conforme [[01 - Processo de Desenvolvimento Suportado por IA]]) implementa os testes de domínio e o código de produção na branch `feature/<escopo>`.
+3. **Validação Local com Maven Wrapper:** Execução de `./mvnw clean verify` garantindo zero falhas e cobertura JaCoCo $\ge 70\%$.
+4. **Pull Request e Pipeline Automatizada:** Abertura de PR disparando `.github/workflows/pr-checks.yml`.
+5. **Checklist de Code Review:**
+   - A mudança preserva os invariantes de domínio (*Zero Overselling*, TTL de 600s, imutabilidade de `PAGO`, Transactional Outbox sem escrita dupla)?
+   - Os testes cobrem o caminho feliz e as transições inválidas/exceções?
+   - Nenhum segredo ou credencial foi incluído no código-fonte?
+   - A documentação dos Pacotes 1, 2 e 3 foi atualizada caso algum contrato ou componente tenha evoluído?
 
 ---
 
-## 7. Políticas transversais
+## 4. Padrao de Mensagens de Commit (Conventional Commits)
 
-| Política | Regra |
-|---|---|
-| **Segredos** | Nunca em código. `.env.example` versionado, `.env` no `.gitignore`. GitHub Secrets em CI. |
-| **Dependências** | PRs de atualização via Dependabot. Review obrigatório. |
-| **Licenças** | Scan automático; proibidas GPL/AGPL em runtime (OK em dev). |
-| **PII / LGPD** | Logs de CPF/email/telefone sempre mascarados. |
-| **Grandes binários** | Git LFS para arquivos > 1MB (fonts, PDFs de referência). |
+Formato obrigatório: `<type>(<scope>): <subject>`
 
----
-
-## 8. Ambientes
-
-| Ambiente | Branch | Deploy | URL |
-|---|---|---|---|
-| **Local** | qualquer | `docker compose up` manual | `localhost` |
-| **Staging** | `develop` | automático em cada merge | `staging.bolsopass.app` (simulado) |
-| **Produção** | `main` | manual após tag `v*.*.*` + aprovação | `bolsopass.app` (simulado) |
+| Tipo (`type`) | Aplicação | Exemplo |
+| :--- | :--- | :--- |
+| `feat` | Nova funcionalidade de domínio ou endpoint | `feat(orders): implementa OrderStateMachine e OutboxRelayWorker` |
+| `fix` | Correção de bug ou condição de corrida | `fix(inventory): garante devolucao atomica no segundo exato t=600s` |
+| `test` | Adição ou melhoria de testes unitários e Testcontainers | `test(inventory): adiciona disputa concorrente com 200 virtual threads` |
+| `docs` | Atualização de notas no Obsidian, diagramas C4 ou README | `docs(pacote3): atualiza matriz de rastreabilidade e cobertura JaCoCo` |
+| `ci` | Configuração de workflows do GitHub Actions | `ci(actions): adiciona verificacao bloqueante jacoco:check em PRs` |
+| `refactor` | Refatoração interna sem alterar contratos externos | `refactor(iam): extrai deteccao de replay para RefreshTokenFamily` |
 
 ---
 
-## 9. Rotina de releases
+## 5. Versionamento Semantico (SemVer 2.0.0) e Marcos de Entrega
 
-1. Criar branch `release/0.3.0` a partir de `develop`.
-2. Rodar bateria completa (incluindo E2E Playwright noturno).
-3. Corrigir bugs encontrados nesta branch (merge back em `develop`).
-4. Quando verde: merge em `main` + tag `v0.3.0` + merge em `develop`.
-5. CI dispara deploy em produção.
-6. Release notes publicadas no GitHub Releases.
+O projeto adota [Semantic Versioning 2.0.0](https://semver.org/lang/pt-BR/) (`MAJOR.MINOR.PATCH`), associando cada pacote avaliativo da disciplina a uma release formal:
 
----
-
-## 10. Papéis no repositório
-
-| Papel | Permissão | Responsabilidade |
-|---|---|---|
-| **Maintainer** | Admin | Branch protection, releases, segredos |
-| **Developer** | Write | Branches `feature/*`, PRs, reviews |
-| **Reviewer** | Write (grupo CODEOWNERS) | Reviews obrigatórios em módulos sob sua posse |
-
-Arquivo `CODEOWNERS` na raiz distribui a propriedade por diretório (ex: `/orders-service/ @dev-backend-1 @dev-backend-2`).
+| Versão / Tag | Pacote Avaliativo PUCRS | Escopo Consolidado na Baseline | Status |
+| :---: | :--- | :--- | :---: |
+| **`v0.1.0`** | **Pacote 1 — Processo e Requisitos** | Processo com IA, Visão do Produto, 18 User Stories (Story Mapping + BDD), 8 RNFs (ISO 25010), FSM, Mockups High-Res e specs OpenAPI/AsyncAPI. | Concluído |
+| **`v0.2.0`** | **Pacote 2 — Arquitetura e Infraestrutura** | Arquitetura C4 (Níveis 1, 2 e 3), Modelo de Dados Conceitual, Topologia Kafka, Pipeline CI/CD e Processo de GCS. | Concluído |
+| **`v0.3.0`** | **Pacote 3 — Checkpoint do Desenvolvimento** | Implementação Java 21 / Spring Boot 3.3 dos 5 módulos (`src/`), 22 testes automatizados com Testcontainers e cobertura de domínio de **$93,38\%$ de instruções e $73,98\%$ de branches** no JaCoCo, workflows `.github/workflows/` e documentação atualizada. | Concluído |
+| **`v1.0.0`** | **Pacote 4 — Produto Completo** | Orquestração integral via `docker-compose.yml` unificado e homologação fim a fim de todos os contêineres. | Planejado |

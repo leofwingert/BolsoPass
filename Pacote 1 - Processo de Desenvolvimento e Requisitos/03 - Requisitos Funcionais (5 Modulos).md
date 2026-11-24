@@ -14,7 +14,7 @@ tags:
   - telemetria
   - pacotes/pacote-1
 created: 2026-10-05
-updated: 2026-10-06
+updated: 2026-11-23
 status: pronto
 ---
 
@@ -180,3 +180,15 @@ flowchart TD
 ### [RF-18] Pipeline de Integracao Continua (CI/CD)
 - **Descrição Técnica:** Esteira automatizada configurada no GitHub Actions ou GitLab CI disparada a cada Pull Request ou commit na branch `develop`.
 - **Regras de Negócio:** A pipeline executa linters estáticos, testes unitários com validação de cobertura $\ge 70\%$ nos agregados de domínio e testes de integração com Testcontainers reais.
+
+---
+
+## 6. Mapeamento de Implementacao no Codigo-Fonte (Checkpoint Pacote 3)
+
+| Frente Funcional | Pacote Java Implementado (`src/main/java/`) | Principais Classes de Produção | Classes de Teste Automatizado (`src/test/java/`) |
+| :--- | :--- | :--- | :--- |
+| **1. Identidade e IAM** | `com.bolsopass.iam` | `UserAccount`, `RefreshTokenFamily`, `Role`, `AuditEvent`, `IamService`, `AuthController` | `DomainModulesUnitTest`, `TransactionalOutboxIntegrationTest` |
+| **2. Catálogo e Inventário** | `com.bolsopass.catalog`<br/>`com.bolsopass.inventory` | `EventCatalogItem`, `Seat`, `Reservation`, `SeatInventory`, `ReservaExpiradaEvent`, `InventoryService`, `ReservationController` | `SeatInventoryTest`, `DomainModulesUnitTest`, `TransactionalOutboxIntegrationTest` |
+| **3. Pedidos e Checkout** | `com.bolsopass.orders` | `OrderStateMachine`, `Order`, `OrderStatus`, `IdempotencyStore`, `PedidoPagoEvent`, `OrderEntity`, `OutboxEventEntity`, `CheckoutService`, `OutboxRelayWorker`, `PaymentGatewaySimulator`, `CheckoutController` | `OrderStateMachineTest`, `TransactionalOutboxIntegrationTest` |
+| **4. Mensageria e Despacho** | `com.bolsopass.ticketing` | `TicketCryptoSigner`, `DigitalTicket`, `ScanResultStatus`, `ProcessedMessageEntity`, `TicketingService` | `DomainModulesUnitTest`, `TransactionalOutboxIntegrationTest` |
+| **5. Telemetria e DevOps** | `com.bolsopass.telemetry`<br/>`.github/workflows/` | `TelemetrySnapshot`, `ci.yml`, `pr-checks.yml`, `k6-flash-crowd-load-test.js` | `DomainModulesUnitTest` |

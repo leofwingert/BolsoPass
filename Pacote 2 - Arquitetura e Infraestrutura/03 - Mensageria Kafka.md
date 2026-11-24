@@ -1,174 +1,141 @@
+---
+title: "Topologia e Estrutura de Mensageria Apache Kafka"
+aliases:
+  - Mensageria Kafka
+  - Topologia Kafka
+  - Eventos Kafka BolsoPass
+tags:
+  - pucrs
+  - construcao-de-software
+  - kafka
+  - mensageria
+  - outbox-pattern
+  - idempotencia
+  - pacotes/pacote-2
+created: 2026-10-26
+updated: 2026-11-23
+status: pronto
+---
+
 # 03 — Estrutura de Mensageria Kafka
 
-> Topologia de tópicos, particionamento, retenção, schemas e padrões de produção/consumo adotados no BolsoPass.
-> O contrato formal (AsyncAPI 2.6) está em [`especificacoes-ia/specs/asyncapi-kafka.yaml`](../Pacote%201%20-%20Processo%20de%20Desenvolvimento%20e%20Requisitos/especificacoes-ia/specs/asyncapi-kafka.yaml).
+> [!abstract] Resumo da Espinha Dorsal Assíncrona
+> Especificação da topologia de tópicos, particionamento, retenção, esquemas de eventos e padrões de produção ([Transactional Outbox](https://microservices.io/patterns/data/transactional-outbox.html)) e consumo idempotente adotados no [[00 - Visao Geral e Indice (MOC)|BolsoPass]]. O contrato formal [AsyncAPI 2.6](https://www.asyncapi.com/) encontra-se em `Pacote 1 - Processo de Desenvolvimento e Requisitos/especificacoes-ia/specs/asyncapi-kafka.yaml` e sua implementação executável está em `src/main/java/com/bolsopass/`.
 
 ---
 
-## 1. Cluster
+## 1. Configuracao do Cluster
 
-| Item | Decisão |
-|---|---|
-| Versão | Apache Kafka 3.7 (imagem `confluentinc/cp-kafka:7.6`) |
-| Modo | **KRaft** (sem Zookeeper) |
-| Brokers | 1 em dev / 3 em produção simulada |
-| Replication factor | `1` em dev / `3` em prod |
-| `min.insync.replicas` | `1` em dev / `2` em prod |
-| `acks` do producer | `all` para tópicos transacionais |
-| Schema Registry | Confluent Schema Registry (opcional — JSON Schema no Pacote 3) |
-| UI | AKHQ em `http://localhost:8089` |
+| Parâmetro | Decisão Arquitetural |
+| :--- | :--- |
+| **Versão do Broker** | [Apache Kafka 3.7](https://kafka.apache.org/) (imagem `confluentinc/cp-kafka:7.6`) |
+| **Modo de Coordenação** | **KRaft** (sem dependência de ZooKeeper) |
+| **Garantia de Escrita (`acks`)** | `acks=all` para todos os produtores transacionais |
+| **Semântica de Entrega** | *At-Least-Once* no broker + *Effectively-Once* no consumidor via tabela `processed_messages` |
+| **Interface de Inspeção** | AKHQ em `http://localhost:8089` |
 
 ---
 
-## 2. Catálogo de tópicos
+## 2. Catalogo Padronizado de Topicos e Contratos
 
-| Tópico | Produtor | Consumidores | Partições | Retenção | Chave de particionamento |
-|---|---|---|---:|---|---|
-| `reservation.created` | inventory-service | orders, telemetry | 12 | 7d | `reservation_id` |
-| `reservation.expired` | inventory-service | orders, telemetry | 12 | 7d | `reservation_id` |
-| `reservation.released` | inventory-service | telemetry | 12 | 7d | `reservation_id` |
-| `order.created` | orders-service | telemetry | 12 | 7d | `order_id` |
-| `order.payment_requested` | orders-service | (gateway simulado) | 6 | 7d | `order_id` |
-| `payment.confirmed` | orders-service (via webhook) | ticketing, inventory, telemetry | 12 | 30d | `order_id` |
-| `payment.failed` | orders-service | inventory (release), telemetry | 6 | 7d | `order_id` |
-| `ticket.issued` | ticketing-service | notification, telemetry | 12 | 30d | `order_id` |
-| `ticket.scanned` | ticketing-service | telemetry | 6 | 30d | `ticket_id` |
-| `notification.sent` | notification-service | telemetry | 3 | 7d | `order_id` |
-| `audit.event` | iam-service, orders-service, inventory-service | telemetry (sink) | 6 | 90d | `aggregate_id` |
-| `_dlq.<tópico-origem>` | (consumidor que falhou) | ops (manual) | 3 | 30d | igual ao original |
+Os tópicos abaixo harmonizam o contrato AsyncAPI 2.6 (`.agents/specs/asyncapi-kafka.yaml`), a skill `kafka-contracts` e as classes implementadas no Pacote 3:
 
-### Convenções de nomenclatura
-
-- `<aggregate>.<action-past-tense>` — todos em **passado** (eventos, não comandos).
-- DLQ: prefixo `_dlq.` seguido do tópico de origem.
-- Nenhum tópico em maiúsculas; `kebab.case` reservado para separação lógica.
+| Tópico Kafka | Chave de Particionamento | Classe de Evento no Pacote 3 | Produtor | Consumidores | Partições | Retenção |
+| :--- | :--- | :--- | :--- | :--- | :---: | :---: |
+| **`pedidos.pagos`** | `order_id` | `orders.domain.PedidoPagoEvent` | `orders-service` (`OutboxRelayWorker`) | `ticketing-service` (`TicketingService`), `telemetry-service` | 12 | 30d |
+| **`reservas.expiradas`** | `event_id` | `inventory.domain.ReservaExpiradaEvent` | `inventory-service` (`SeatInventory`) | `orders-service`, `notification-service` (WS), `telemetry-service` | 12 | 7d |
+| **`reservas.criadas`** | `event_id` | `inventory.domain.Reservation` | `inventory-service` | `orders-service`, `telemetry-service` | 12 | 7d |
+| **`pedidos.cancelados`** | `order_id` | `orders.domain.Order` | `orders-service` (Outbox) | `inventory-service` (liberação de assento), `telemetry-service` | 6 | 7d |
+| **`telemetria.eventos`** | `session_id` | `telemetry.domain.TelemetrySnapshot` | Gateway / Serviços | `telemetry-service` | 6 | 7d |
+| **`_dlq.<topico>`** | igual ao tópico de origem | Envelope com stacktrace de falha | Consumidor após esgotar retentativas | Operações / SRE (`dlq-replay`) | 3 | 30d |
 
 ---
 
-## 3. Schema de evento (envelope padrão)
+## 3. Esquemas de Payload (Conformidade com AsyncAPI 2.6)
 
-Todo evento publicado segue o envelope abaixo (JSON Schema simplificado):
+### 3.1 Tópico `pedidos.pagos` (`PedidoPagoEvent`)
+Publicado pelo `OutboxRelayWorker` após o commit ACID do pagamento no PostgreSQL:
 
 ```json
 {
-  "eventId": "01HQZ...",         // ULID — único por evento (chave de idempotência)
-  "eventType": "payment.confirmed",
-  "eventVersion": "1.0",
-  "occurredAt": "2026-11-10T18:03:21.123Z",
-  "producer": "orders-service",
-  "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
-  "aggregateType": "Order",
-  "aggregateId": "01HQ...",
-  "payload": { /* específico do eventType */ }
+  "order_id": "7b9e8312-d9f2-4b2a-a9e1-e63d865cfa99",
+  "client_id": "11111111-1111-1111-1111-111111111111",
+  "event_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "seat_id": "A-15",
+  "amount_cents": 38500,
+  "paid_at": "2026-11-23T20:55:00Z"
 }
 ```
 
-### Headers Kafka obrigatórios
+### 3.2 Tópico `reservas.expiradas` (`ReservaExpiradaEvent`)
+Publicado quando o TTL estrito de 10 minutos ($600\text{ segundos}$) de uma reserva expira sem confirmação de pagamento:
 
-| Header | Significado |
-|---|---|
-| `event-id` | duplicata do `eventId` do envelope (facilita o consumer filtrar sem desserializar) |
-| `event-type` | duplicata do `eventType` |
-| `trace-id` | propagação de traço (W3C) |
-| `content-type` | `application/json` |
-
----
-
-## 4. Produção segura — Transactional Outbox
-
-Nenhum serviço produz direto do fluxo síncrono. O padrão aplicado é:
-
-1. O caso de uso grava a mutação de domínio **+ linha em `outbox_messages`** na **mesma transação ACID**.
-2. O `OutboxRelayWorker` (`@Scheduled(fixedDelay=200ms)`) consulta `WHERE published_at IS NULL ORDER BY created_at LIMIT 500 FOR UPDATE SKIP LOCKED`.
-3. Para cada linha: publica no Kafka com `acks=all`, obtém o offset, atualiza `published_at = NOW()`.
-4. Em caso de crash entre publicar e marcar, o mesmo `eventId` será reenviado — e deduplicado no consumidor.
-
-**Garantia**: *at-least-once* na saída + *effectively-once* na recepção.
-
----
-
-## 5. Consumo seguro — Idempotência
-
-Todo consumidor:
-
-1. Inicia transação no banco local.
-2. `INSERT INTO processed_messages (message_id, consumer_group) VALUES (?, ?) ON CONFLICT DO NOTHING RETURNING *`.
-3. Se **nenhuma linha retornada** → já processado → `commit` e `ack`.
-4. Senão → executa a lógica de negócio na **mesma transação** → `commit`.
-5. Faz `commit` do offset Kafka **só após** o commit do banco.
-
-### Configurações de consumer
-
-| Config | Valor |
-|---|---|
-| `enable.auto.commit` | `false` |
-| `isolation.level` | `read_committed` |
-| `max.poll.records` | `50` |
-| `session.timeout.ms` | `30000` |
-| `retries do processamento` | 3 (backoff exponencial 1s/5s/25s) → DLQ |
-
----
-
-## 6. Fluxo coreográfico do checkout
-
-```mermaid
-sequenceDiagram
-  participant SPA
-  participant OR as orders-service
-  participant IN as inventory-service
-  participant K as Kafka
-  participant TK as ticketing-service
-  participant NT as notification-service
-
-  SPA->>OR: POST /orders (Idempotency-Key)
-  OR->>IN: reserva assentos (síncrono)
-  IN-->>K: reservation.created (via outbox)
-  OR-->>K: order.created (via outbox)
-  OR-->>SPA: 201 Created + orderId
-
-  Note over OR: aguarda webhook do gateway
-  OR-->>K: payment.confirmed (via outbox)
-
-  K-->>TK: payment.confirmed
-  TK->>TK: gera PDF + QR assinado
-  TK-->>K: ticket.issued
-
-  K-->>IN: payment.confirmed (marca VENDIDO)
-  K-->>NT: ticket.issued
-  NT->>NT: envia e-mail + SMS + WebSocket push
-  NT-->>K: notification.sent
+```json
+{
+  "event_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "seat_id": "B-04",
+  "reservation_id": "8e11c401-6a21-4c93-9111-94a3f1120001",
+  "expired_at": "2026-11-23T20:10:00Z"
+}
 ```
 
 ---
 
-## 7. Dead Letter Queue (DLQ)
+## 4. Producao Confiavel — Transactional Outbox (`OutboxRelayWorker`)
 
-Toda falha após 3 tentativas vai para `_dlq.<tópico-origem>` com headers extras:
+Nenhum fluxo HTTP de checkout publica diretamente no Kafka durante a transação do usuário. O mecanismo implementado em `CheckoutService` e `OutboxRelayWorker` segue três passos:
 
-- `original-topic`, `original-partition`, `original-offset`
-- `failure-reason` (classe da exceção)
-- `failure-stacktrace` (truncada em 4KB)
-- `failed-at` (ISO 8601)
-
-O time de ops inspeciona via AKHQ e usa um utilitário `dlq-replay` (CLI Spring) para reinjetar após correção.
-
----
-
-## 8. Grupos de consumidores
-
-| Consumer group | Serviço | Tópicos |
-|---|---|---|
-| `orders-reservation` | orders-service | `reservation.expired` |
-| `orders-payment` | orders-service | (webhook, não Kafka) |
-| `inventory-payment` | inventory-service | `payment.confirmed`, `payment.failed` |
-| `ticketing-payment` | ticketing-service | `payment.confirmed` |
-| `notification-ticket` | notification-service | `ticket.issued` |
-| `telemetry-all` | telemetry-service | assinatura por padrão `*` (regex) |
+1. **Gravação Atômica Relacional:** O método `CheckoutService.processCheckout(...)` (`@Transactional`) grava `OrderEntity` (com `status = 'PAGO'`) na tabela `orders` e `OutboxEventEntity` (com `status = 'PENDING'` e `topic = 'pedidos.pagos'`) na tabela `outbox_events` dentro da **mesma transação ACID**.
+2. **Polling Concorrente sem Contenção:** O `OutboxRelayWorker` consulta `outbox_events` utilizando a cláusula `FOR UPDATE SKIP LOCKED` do PostgreSQL (`OutboxEventRepository.findPendingBatchForUpdateSkipLocked()`):
+   ```sql
+   SELECT * FROM outbox_events
+   WHERE status = 'PENDING'
+   ORDER BY created_at ASC
+   LIMIT 100
+   FOR UPDATE SKIP LOCKED
+   ```
+3. **Confirmação de Publicação:** Para cada registro, envia a mensagem via `KafkaTemplate.send(topic, aggregateId, payload)`, aguarda o ACK síncrono do broker e atualiza `status = 'PUBLISHED'` e `published_at = NOW()`. Caso o broker Kafka esteja temporariamente inacessível, o registro permanece `PENDING` no PostgreSQL e é despachado automaticamente assim que o cluster se recupera (`0%` de perda de eventos, comprovado em `TransactionalOutboxIntegrationTest`).
 
 ---
 
-## 9. Observabilidade
+## 5. Consumo Idempotente — Tabela `processed_messages` (`TicketingService`)
 
-- **Métricas**: `kafka_producer_record_send_total`, `kafka_consumer_fetch_latency_avg`, `kafka_consumer_records_lag` por tópico (Prometheus).
-- **Alertas**: lag > 10k mensagens, DLQ > 0, idade do outbox > 5s.
-- **Dashboards Grafana**: throughput por tópico, latência fim-a-fim do checkout, taxa de duplicatas filtradas pelo `processed_messages`.
+Para absorver duplicatas decorrentes da entrega *At-Least-Once*, o consumidor `TicketingService` (`consumer_group = "ticketing-payment"`) executa o protocolo de deduplicação em `consumeOrderPaidIdempotently(messageId, event)`:
+
+1. Consulta `processedMessageRepository.existsById(messageId)` na tabela `processed_messages(message_id, consumer_group, processed_at)`.
+2. Se o `message_id` já existir, aborta imediatamente como *no-op* idempotente (`Optional.empty()`), evitando gerar um segundo PDF ou enviar notificações duplicadas.
+3. Caso contrário, persiste o `ProcessedMessageEntity`, gera o ingresso PDF com QR Code assinado com ECDSA P-256 (`TicketCryptoSigner`) e dispara a notificação WebSocket para `/ws/orders/{orderId}`.
+
+---
+
+## 6. Diagrama de Sequencia Fim a Fim (Validado no Pacote 3)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant SPA as Cliente / SPA
+    participant ORD as CheckoutService (orders)
+    participant INV as InventoryService (inventory)
+    participant PG as PostgreSQL (ACID)
+    participant RELAY as OutboxRelayWorker
+    participant KAFKA as Apache Kafka
+    participant TKT as TicketingService (ticketing)
+
+    SPA->>INV: POST /api/v1/reservations (event_id, seat_id)
+    INV-->>SPA: HTTP 201 Created (reservation_id, ttl_seconds=600)
+
+    SPA->>ORD: POST /api/v1/checkout (Header: Idempotency-Key)
+    ORD->>INV: confirmReservation(reservation_id)
+    ORD->>PG: BEGIN TX -> INSERT orders (PAGO) + INSERT outbox_events (PENDING) -> COMMIT
+    ORD-->>SPA: HTTP 200 OK (order_id, status=PAGO)
+
+    RELAY->>PG: SELECT * FROM outbox_events WHERE status='PENDING' FOR UPDATE SKIP LOCKED
+    RELAY->>KAFKA: Publica PedidoPagoEvent no topico pedidos.pagos
+    KAFKA-->>RELAY: ACK recebido
+    RELAY->>PG: UPDATE outbox_events SET status='PUBLISHED'
+
+    KAFKA->>TKT: Entrega PedidoPagoEvent
+    TKT->>PG: Verifica e insere message_id em processed_messages
+    TKT->>TKT: Gera PDF (%PDF-) + Assinatura ECDSA P-256
+    TKT-->>SPA: Push WebSocket /ws/orders/{orderId}:TICKET_ISSUED
+```

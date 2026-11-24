@@ -1,154 +1,108 @@
+---
+title: "Pipeline de Desenvolvimento e Integração Contínua (CI/CD)"
+aliases:
+  - Pipeline CI/CD
+  - GitHub Actions BolsoPass
+  - Esteira de Build e Testes
+tags:
+  - pucrs
+  - construcao-de-software
+  - ci-cd
+  - github-actions
+  - jacoco
+  - testcontainers
+  - pacotes/pacote-2
+created: 2026-10-26
+updated: 2026-11-23
+status: pronto
+---
+
 # 04 — Pipeline de Desenvolvimento (CI/CD)
 
-> Pipeline automatizada em **GitHub Actions** executada a cada *Pull Request* e *Merge* em `develop`.
+> [!abstract] Resumo da Esteira Automatizada
+> Especificação e implementação da pipeline automatizada em **GitHub Actions** (`.github/workflows/ci.yml` e `.github/workflows/pr-checks.yml`) executada a cada *push* e *Pull Request* da plataforma [[00 - Visao Geral e Indice (MOC)|BolsoPass]]. No Pacote 3, a esteira encontra-se operacional e aplica verificação bloqueante de cobertura mínima de $70\%$ nos pacotes de domínio via [JaCoCo](https://www.jacoco.org/jacoco/) e testes de integração com [Testcontainers](https://testcontainers.com/).
 
 ---
 
-## 1. Visão geral
+## 1. Fluxo Geral da Pipeline
 
 ```mermaid
 flowchart LR
-  PR[Pull Request<br/>em develop]
-  LINT[Lint & Format]
-  BUILD[Build]
-  UT[Testes Unitários]
-  IT[Testes de Integração<br/>Testcontainers]
-  COV[Coverage ≥ 70%]
-  SAST[SAST / SCA<br/>Trivy + Dependabot]
-  IMG[Build Docker Image]
-  PUSH[Push para GHCR]
-  DEPLOY[Deploy em staging<br/>via docker-compose]
+    PR["Push / Pull Request<br/>main ou develop"]
+    BUILD["Compilacao Java 21<br/>(./mvnw test-compile)"]
+    UT["Testes Unitarios de Dominio<br/>FSM + Concorrencia 200 Threads"]
+    IT["Testes de Integracao<br/>Testcontainers PostgreSQL + Kafka"]
+    COV["Gate JaCoCo Bloqueante<br/>Dominio >= 70% (Atual: 93,38%)"]
+    ART["Upload de Artefato<br/>Relatorio HTML JaCoCo"]
 
-  PR --> LINT --> BUILD --> UT --> IT --> COV --> SAST
-  SAST -->|merge em develop| IMG --> PUSH --> DEPLOY
+    PR --> BUILD --> UT --> IT --> COV --> ART
 ```
 
 ---
 
-## 2. Stages detalhadas
+## 2. Stages Implementadas e Comandos Executados
 
-### 2.1 Lint & Format (bloqueante)
+### 2.1 Compilação e Wrapper Reprodutível (`./mvnw`)
+- O repositório inclui o **Apache Maven Wrapper 3.9.12** (`./mvnw` e `.mvn/wrapper/maven-wrapper.properties`) pré-configurado com suporte a UTF-8 (`.mvn/jvm.config`), garantindo compilação determinística com target Java 21 (`<maven.compiler.release>21</maven.compiler.release>`).
+- Qualquer erro de compilação interrompe imediatamente a pipeline.
 
-| Linguagem | Ferramenta | Comando |
-|---|---|---|
-| Java | **Checkstyle** + **Spotless** | `./mvnw spotless:check checkstyle:check` |
-| TypeScript/React | **ESLint** + **Prettier** | `pnpm lint && pnpm format:check` |
-| Dockerfiles | **hadolint** | `hadolint **/Dockerfile` |
-| YAML | **yamllint** | `yamllint .` |
-| Commits | **commitlint** (Conventional Commits) | `commitlint --from=origin/develop` |
+### 2.2 Testes Unitários de Domínio e Concorrência
+- Executados via JUnit 5 e AssertJ:
+  - `OrderStateMachineTest`: valida todas as transições válidas e inválidas da FSM do Pedido, imutabilidade do estado `PAGO`, bloqueio `EXPIRADO` $\to$ `PAGO` e janela de 24h do `IdempotencyStore`.
+  - `SeatInventoryTest`: valida exclusão mútua sob disputa simultânea de 200 threads (*Zero Overselling*), expiração estrita em $600\text{ segundos}$ e invariante de conservação de estoque.
+  - `DomainModulesUnitTest`: valida RBAC, *rate limiting* (HTTP 429), rotação de Refresh Token com detecção de replay, capacidade de lotes do catálogo, assinatura criptográfica ECDSA P-256 offline ($< 5\text{ ms}$) e telemetria.
 
-### 2.2 Build
+### 2.3 Testes de Integração (`TransactionalOutboxIntegrationTest`)
+- Sobe instância real do **PostgreSQL** via [Testcontainers](https://testcontainers.com/) (`postgres:15-alpine`) e broker **Apache Kafka** (`@EmbeddedKafka` com tópicos `pedidos.pagos` e `reservas.expiradas`).
+- Exercita:
+  - Rotas REST de login JWT e rotação/revogação de Refresh Token.
+  - 100 requisições HTTP `POST /api/v1/reservations` concorrentes confirmando $0\%$ de sobre-venda (1 resposta `201 Created` e 99 respostas `409 Conflict`).
+  - 3 requisições `POST /api/v1/checkout` consecutivas com mesma `Idempotency-Key` durante queda simulada do broker Kafka, confirmando apenas 1 cobrança financeira e despacho íntegro pelo `OutboxRelayWorker` (`FOR UPDATE SKIP LOCKED`) após recuperação do broker.
+  - Consumo idempotente via tabela `processed_messages` e compilação de ingresso em PDF (`%PDF-`) com QR Code ECDSA P-256.
 
-- **Backend**: `./mvnw -B -ntp verify -DskipTests` em cada módulo (`mvn-reactor` do monorepo).
-- **Frontend**: `pnpm build` (gera `dist/`).
-- Falha de compilação **aborta** a pipeline.
-
-### 2.3 Testes unitários
-
-- **Backend**: JUnit 5 + Mockito + AssertJ — `./mvnw test`.
-- **Frontend**: Vitest — `pnpm test:unit`.
-- Cobertura mínima: **70% em pacotes de domínio** (`com.bolsopass.*.domain.*`) — enforced via **JaCoCo** com `coverage-check`.
-
-### 2.4 Testes de integração (Testcontainers)
-
-- Spins up reais de **PostgreSQL 16**, **Kafka 3.7 (KRaft)** e **Redis 7** por módulo.
-- Rodam contra o cluster real do GitHub-hosted runner (Linux, Docker-in-Docker).
-- Timeout agressivo por teste (30s) para evitar flake.
-- Comando: `./mvnw -Pit verify`.
-
-### 2.5 Testes E2E (opcional/noturno)
-
-- **Playwright** rodando contra o `docker-compose up` completo.
-- Executado em workflow separado `nightly-e2e.yml` (cron 02:00 UTC-3).
-
-### 2.6 Análise de segurança (SAST / SCA)
-
-| Verificação | Ferramenta |
-|---|---|
-| Vulnerabilidades em dependências | **Dependabot** + `./mvnw org.owasp:dependency-check-maven:check` |
-| Secrets em código | **gitleaks** |
-| Imagens Docker | **Trivy** (`trivy image ghcr.io/bolsopass/...`) |
-| Qualidade de código | **SonarCloud** (opcional) |
-
-### 2.7 Build & push de imagens Docker
-
-- Multi-stage Dockerfile para cada microsserviço (`eclipse-temurin:21-jre-alpine` como base final).
-- Tag: `ghcr.io/<org>/<service>:${{ github.sha }}` + `:develop` em merges em develop.
-- Assinatura das imagens com **Cosign** (opcional).
-
-### 2.8 Deploy em staging
-
-- Workflow `deploy-staging.yml` dispara em `push` para `develop`.
-- SSH em VM de staging (ou execução local em docker-compose) com `docker compose pull && docker compose up -d`.
-- Smoke test via `curl` em endpoints de healthcheck.
+### 2.4 Gate Bloqueante de Cobertura de Domínio ($\ge 70\%$ via JaCoCo)
+- O plugin `jacoco-maven-plugin` (`0.8.12`) executa automaticamente os goals `prepare-agent`, `report` e `check`.
+- Caso a razão de cobertura de instruções (`INSTRUCTION`) ou desvios (`BRANCH`) nos pacotes de domínio (`com/bolsopass/*/domain/*`) seja inferior a `0.70` ($70\%$), o goal `jacoco:check` aborta a build com falha.
+- **Resultado aferido no Pacote 3:** **$93,38\%$ de cobertura de instruções** e **$73,98\%$ de cobertura de branches** no domínio ($86,03\%$ global).
 
 ---
 
-## 3. Matriz de triggers
+## 3. Matriz de Triggers Configurados
 
-| Evento | Lint | Build | UT | IT | SAST | Imagem | Deploy |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Push em qualquer branch | ✅ | ✅ | ✅ | — | — | — | — |
-| Pull Request → `develop` | ✅ | ✅ | ✅ | ✅ | ✅ | — | — |
-| Merge em `develop` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (staging) |
-| Tag `v*.*.*` em `main` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (`:vX.Y.Z`) | ✅ (prod) |
-| Cron noturno | — | — | — | ✅ | ✅ (full) | — | — |
+| Evento no GitHub | Workflow Acionado | Build Java 21 | Testes Unitários | Testes de Integração | Gate JaCoCo $\ge 70\%$ | Upload Relatório |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| `push` em `main`, `develop`, `feature/**`, `bugfix/**`, `release/**` | `.github/workflows/ci.yml` | Ativo | Ativo | Ativo | Ativo | Ativo |
+| `pull_request` para `main` ou `develop` | `.github/workflows/pr-checks.yml` | Ativo | Ativo | Ativo | Ativo | Ativo |
 
 ---
 
-## 4. Estrutura dos workflows (`.github/workflows/`)
+## 4. Estrutura dos Workflows Implementados (`.github/workflows/`)
 
-```
+```text
 .github/workflows/
-├── ci.yml              # lint + build + UT (todo push)
-├── pr-checks.yml       # IT + SAST + coverage (só PR → develop)
-├── deploy-staging.yml  # merge em develop
-├── release.yml         # tag v*.*.* em main
-└── nightly-e2e.yml     # Playwright full flow
+├── ci.yml         # Build, testes unitarios, integracao e gate JaCoCo >= 70% em todo push
+└── pr-checks.yml  # Verificacao completa (./mvnw -B -ntp clean verify) em Pull Requests
 ```
 
-### Exemplo — `ci.yml` (esqueleto)
+### Trecho Principal de Verificação (`.github/workflows/ci.yml`)
 
 ```yaml
-name: CI
-on: [push]
-jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with: { java-version: '21', distribution: 'temurin' }
-      - run: ./mvnw -B spotless:check checkstyle:check
-  build-test:
-    needs: lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with: { java-version: '21', distribution: 'temurin' }
-      - run: ./mvnw -B -ntp verify
-      - uses: codecov/codecov-action@v4
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run Unit Tests and JaCoCo Domain Coverage Check (>= 70%)
+        run: ./mvnw -B -ntp clean test jacoco:report jacoco:check
 ```
 
 ---
 
-## 5. Cache e performance
+## 5. Governanca e Protecao de Branches
 
-- Cache do `~/.m2/repository` (Maven) por `hashFiles('**/pom.xml')`.
-- Cache do store do `pnpm` por `hashFiles('pnpm-lock.yaml')`.
-- Testcontainers com `reuse=true` entre jobs sequenciais do mesmo workflow.
-- Matriz de módulos paralelos quando houver >5 serviços.
-
----
-
-## 6. Enforcement no GitHub
-
-**Branch protection rules** em `develop` e `main`:
-
-- Require pull request before merging.
-- Require status checks to pass: `lint`, `build-test`, `pr-checks/integration`, `pr-checks/coverage`.
-- Require branches to be up to date.
-- Require conversation resolution.
-- Require signed commits (recomendado).
-- No force push.
+Regras aplicadas às branches principais (`main` e `develop`), alinhadas ao [[05 - Processo de GCS]]:
+- Exigência de Pull Request aprovado antes do merge.
+- Exigência de aprovação nos status checks automatizados (`Build, Unit Tests & Domain Coverage (>= 70%)` e `Testcontainers Integration & Domain Coverage (>= 70%)`).
+- Proibição de *force push* e exigência de resolução de conversas de revisão.

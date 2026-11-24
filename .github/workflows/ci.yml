@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop, 'feature/**', 'bugfix/**', 'release/**' ]
+
+jobs:
+  build-and-unit-test:
+    name: Build, Unit Tests & Domain Coverage (>= 70%)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run Unit Tests and JaCoCo Domain Coverage Check (>= 70%)
+        run: ./mvnw -B -ntp clean test jacoco:report jacoco:check
+
+      - name: Upload JaCoCo Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-coverage-report
+          path: target/site/jacoco/
+

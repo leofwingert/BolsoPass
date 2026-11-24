@@ -12,7 +12,7 @@ tags:
   - regras-de-negocio
   - pacotes/pacote-1
 created: 2026-10-05
-updated: 2026-10-06
+updated: 2026-11-23
 status: pronto
 ---
 
@@ -166,3 +166,14 @@ CREATE TABLE processed_messages (
 ```
 
 Toda mensagem consumida é processada dentro de uma transação local que tenta inserir o `message_id`. Se a chave primária já existir, a transação aborta sem efeitos colaterais (*no-op idempotente*), assegurando que o ingresso não seja gerado duas vezes.
+
+---
+
+## 5. Rastreabilidade com a Implementacao do Pacote 3 (`v0.3.0`)
+
+Todos os mecanismos formais especificados neste documento encontram-se implementados e verificados por testes automatizados:
+
+- **FSM do Pedido:** Classes `com.bolsopass.orders.domain.OrderStateMachine` e `Order`, verificadas em `OrderStateMachineTest` ($93,4\%$ de cobertura de instruções e $91,7\%$ de branches na máquina de estados).
+- **Ciclo de Vida do Assento e Reserva (TTL de 600s):** Classes `com.bolsopass.inventory.domain.Seat`, `Reservation` e `SeatInventory`, verificadas em `SeatInventoryTest` (incluindo teste de estresse concorrente com 200 threads simultâneas).
+- **Transactional Outbox com `FOR UPDATE SKIP LOCKED`:** Entidades `OrderEntity` e `OutboxEventEntity`, repositório `OutboxEventRepository` e worker `OutboxRelayWorker`, validados com injeção de falha e recuperação do broker Apache Kafka em `TransactionalOutboxIntegrationTest`.
+- **Idempotência HTTP (`Idempotency-Key`) e Deduplicação Kafka (`processed_messages`):** Classes `IdempotencyStore` e `ProcessedMessageEntity`, validadas em `OrderStateMachineTest` e `TransactionalOutboxIntegrationTest`.

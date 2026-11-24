@@ -71,3 +71,10 @@ A aplicação simula:
 - Cronômetro regressivo ativo de 10:00 minutos com alerta visual e sonoro de expiração.
 - Emissão de bilhete digital com assinatura criptográfica assimétrica.
 - Modo de operação da portaria com alternância entre online e offline.
+
+---
+
+## 5. Evolucao e Rastreabilidade com os Pacotes 2 e 3
+
+- **Pacote 2 (Arquitetura e Infraestrutura):** Documentado em [`../Pacote 2 - Arquitetura e Infraestrutura/`](../Pacote%202%20-%20Arquitetura%20e%20Infraestrutura/) (Arquitetura C4, Modelo de Dados Conceitual, Topologia Kafka, Pipeline CI/CD e Processo de GCS).
+- **Pacote 3 (Checkpoint do Desenvolvimento):** Documentado em [`../Pacote 3 - Checkpoint do Desenvolvimento/`](../Pacote%203%20-%20Checkpoint%20do%20Desenvolvimento/) e implementado em [`../src/`](../src/) e [`../tests/`](../tests/) com **$93,38\%$ de cobertura de instruções e $73,98\%$ de branches** nos pacotes de domínio aferida via JaCoCo.
