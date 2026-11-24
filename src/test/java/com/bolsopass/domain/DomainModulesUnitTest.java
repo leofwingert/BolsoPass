@@ -180,6 +180,18 @@ class DomainModulesUnitTest {
     }
 
     @Test
+    @DisplayName("Telemetria: registra incidentes de sobre-venda")
+    void shouldRecordOversellingIncidents() {
+        TelemetrySnapshot snapshot = new TelemetrySnapshot();
+
+        assertThat(snapshot.getOversellingIncidents()).isZero();
+
+        snapshot.recordOversellingIncident();
+
+        assertThat(snapshot.getOversellingIncidents()).isEqualTo(1L);
+    }
+
+    @Test
     @DisplayName("Guard Clauses & Invariantes de Borda em Todos os Agregados de Dominio")
     void shouldValidateAllDomainGuardClausesAndEdgeCases() {
         // UserAccount & AuditEvent guard clauses

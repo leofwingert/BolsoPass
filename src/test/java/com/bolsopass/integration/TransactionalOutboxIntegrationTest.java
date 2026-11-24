@@ -274,6 +274,57 @@ class TransactionalOutboxIntegrationTest {
     }
 
     @Test
+    @DisplayName("Checkout: pagamento recusado e repeticao idempotente nao gera nova cobranca nem evento de pagamento")
+    void shouldCacheDeclinedPaymentWithoutChargingAgainOrPublishingPaidEvent() throws Exception {
+        UUID eventId = InventoryService.DEFAULT_EVENT_ID;
+        String seatId = "D-" + UUID.randomUUID().toString().substring(0, 20);
+        inventoryService.registerSeat(eventId, seatId, "Arquibancada", 38500L);
+
+        MvcResult reservationResult = mockMvc.perform(post("/api/v1/reservations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"event_id\":\"" + eventId + "\",\"seat_id\":\"" + seatId + "\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String reservationId = objectMapper.readTree(reservationResult.getResponse().getContentAsString())
+                .get("reservation_id").asText();
+
+        String idempotencyKey = UUID.randomUUID().toString();
+        String checkoutJsonBody = String.format(
+                "{\"reservation_id\":\"%s\",\"payment_method\":\"CREDIT_CARD\",\"installments\":1,\"payment_token\":\"tok_decline\"}",
+                reservationId
+        );
+
+        MvcResult firstCheckout = mockMvc.perform(post("/api/v1/checkout")
+                        .header("Idempotency-Key", idempotencyKey)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(checkoutJsonBody))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.status").value("RECUSADO"))
+                .andExpect(jsonPath("$.decline_reason").value("INSUFFICIENT_FUNDS"))
+                .andReturn();
+        String orderId = objectMapper.readTree(firstCheckout.getResponse().getContentAsString())
+                .get("order_id").asText();
+
+        assertThat(paymentGatewaySimulator.getTotalChargeAttempts()).isEqualTo(1);
+        assertThat(orderJpaRepository.findById(UUID.fromString(orderId)))
+                .get()
+                .extracting(OrderEntity::getStatus)
+                .isEqualTo(OrderStatus.RECUSADO);
+        assertThat(outboxEventRepository.findAll())
+                .noneMatch(event -> event.getAggregateId().equals(orderId));
+
+        mockMvc.perform(post("/api/v1/checkout")
+                        .header("Idempotency-Key", idempotencyKey)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(checkoutJsonBody))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.order_id").value(orderId))
+                .andExpect(jsonPath("$.status").value("RECUSADO"));
+
+        assertThat(paymentGatewaySimulator.getTotalChargeAttempts()).isEqualTo(1);
+    }
+
+    @Test
     @DisplayName("Ticketing & Despacho: Consumo Idempotente via processed_messages, PDF com QR ECDSA P-256 e Validacao na Catraca (US-12 / US-13 / US-14 / US-15)")
     void shouldConsumePaymentEventIdempotentlyGenerateSignedPdfAndVerifyAtGate() {
         UUID orderId = UUID.randomUUID();

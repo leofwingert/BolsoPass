@@ -28,6 +28,10 @@ public class TelemetrySnapshot {
         reservationsExpired.incrementAndGet();
     }
 
+    public void recordOversellingIncident() {
+        oversellingIncidents.incrementAndGet();
+    }
+
     public void recordOrderPaid(long amountCents) {
         if (amountCents <= 0) {
             throw new IllegalArgumentException("amountCents must be positive");
