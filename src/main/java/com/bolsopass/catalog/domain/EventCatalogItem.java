@@ -49,6 +49,11 @@ public class EventCatalogItem {
                 throw new IllegalArgumentException("Lot endsAt must be strictly after startsAt");
             }
         }
+
+        public boolean isOnSaleAt(Instant now) {
+            Objects.requireNonNull(now, "now is required");
+            return !now.isBefore(startsAt) && now.isBefore(endsAt);
+        }
     }
 
     public EventCatalogItem(
@@ -95,6 +100,22 @@ public class EventCatalogItem {
 
     public int getTotalAllocatedQuota() {
         return lots.stream().mapToInt(TicketLot::quota).sum();
+    }
+
+    public int getRemainingCapacity() {
+        return venueCapacityTotal - getTotalAllocatedQuota();
+    }
+
+    public List<TicketLot> getLotsOnSaleAt(Instant now) {
+        Objects.requireNonNull(now, "now is required");
+        return lots.stream()
+                .filter(lot -> lot.isOnSaleAt(now))
+                .toList();
+    }
+
+    public boolean isUpcoming(Instant now) {
+        Objects.requireNonNull(now, "now is required");
+        return now.isBefore(startsAt);
     }
 
     public UUID getEventId() {
